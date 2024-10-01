@@ -1,0 +1,20 @@
+[package]
+name = "tetris"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+const-random = "0.1"
+rand = "0.8"
+
+[dependencies.bevy]
+version = "0.14"
+default-features = false
+features = [
+    "bevy_color",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_dev_tools",
+    "wayland",
+    "x11",
+]
