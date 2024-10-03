@@ -1,3 +1,4 @@
+use std::ops::DerefMut;
 use std::time::Duration;
 
 use bevy::input::keyboard::KeyboardInput;
@@ -10,7 +11,7 @@ pub const GRID_VISIBLE_HEIGHT: u8 = 20;
 
 const DROP_DELAY: Duration = Duration::from_millis(300);
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[derive(Component, Clone, Copy, Eq, PartialEq, Hash, Debug, enum_map::Enum)]
 pub enum PieceKind {
     I,
     O,
@@ -34,7 +35,7 @@ impl PieceKind {
         ]
     }
 
-    const fn base_shape(self) -> [[i8; 2]; 4] {
+    pub const fn base_shape(self) -> [[i8; 2]; 4] {
         match self {
             PieceKind::I => [[-2, 0], [-1, 0], [0, 0], [1, 0]],
             PieceKind::O => [[-1, -1], [0, -1], [-1, 0], [0, 0]],
@@ -46,9 +47,9 @@ impl PieceKind {
         }
     }
 
-    const fn rotation(self, angle: u8) -> [[i8; 2]; 4] {
+    const fn rotation(self, spin: Spin) -> [[i8; 2]; 4] {
         let mut cells = self.base_shape();
-        let mut steps = angle % 4;
+        let mut steps = spin.0 % 4;
         let bbox_is_even = (1 - self.base_width() % 2) as i8;
 
         while steps > 0 {
@@ -65,7 +66,7 @@ impl PieceKind {
         cells
     }
 
-    const fn base_width(self) -> u8 {
+    pub const fn base_width(self) -> u8 {
         match self {
             PieceKind::I => 4,
             PieceKind::O => 2,
@@ -73,9 +74,6 @@ impl PieceKind {
         }
     }
 }
-
-#[derive(Component, Debug, PartialEq, Eq)]
-pub struct Cell(pub u8, pub u8);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CellState {
@@ -95,8 +93,8 @@ pub struct GridState {
 }
 
 impl GridState {
-    fn cell_state(&self, cell: &Cell) -> Option<&CellState> {
-        let Cell(x, y) = cell;
+    fn cell_state(&self, cell: &GridPos) -> Option<&CellState> {
+        let GridPos { x, y } = cell;
         self.cells.get(usize::from(*x))?.get(usize::from(*y))
     }
 }
@@ -109,102 +107,135 @@ impl Default for GridState {
     }
 }
 
-#[derive(Resource, Clone)]
+#[derive(Component, Clone, Copy, Default)]
+pub struct Spin(pub u8);
+
+#[derive(Component, Clone, Copy, Default)]
+pub struct GridPos {
+    pub x: u8,
+    pub y: u8,
+}
+
+#[derive(Component, Clone, Default)]
+pub struct Fall {
+    pub next_trigger: Timer,
+}
+
+#[derive(Bundle, Clone)]
 pub struct FallingPiece {
     pub kind: PieceKind,
-    pos: [u8; 2],
-    angle: u8,
-    time_until_next_fall: Timer,
+    pub pos: GridPos,
+    pub spin: Spin,
+    pub fall: Fall,
 }
 
-impl FallingPiece {
-    fn new(kind: PieceKind) -> Self {
-        let pos_x = if kind.base_width() % 2 == 0 { 5 } else { 4 };
-
-        // Position just in view of the grid
-        let pos_y = GRID_VISIBLE_HEIGHT.wrapping_add_signed(
-            -kind
-                .base_shape()
-                .into_iter()
-                .map(|[_, y]| y)
-                .min()
-                .unwrap_or(0),
-        ) - 1;
-
-        Self {
-            pos: [pos_x, pos_y],
-            kind,
-            angle: 0,
-            time_until_next_fall: Timer::new(DROP_DELAY, TimerMode::Repeating),
-        }
-    }
-
-    fn conflicts(&self, grid: &GridState) -> bool {
-        !self
-            .iter_cells()
-            .all(|cell| matches!(grid.cell_state(&cell), Some(CellState::Empty)))
-    }
-
-    pub fn iter_cells(&self) -> impl Iterator<Item = Cell> + '_ {
-        self.kind.rotation(self.angle).into_iter().map(|[x, y]| {
-            Cell(
-                self.pos[0].wrapping_add_signed(x),
-                self.pos[1].wrapping_add_signed(y),
-            )
-        })
-    }
-
-    pub fn try_move(&mut self, delta: [i8; 2], grid: &GridState) -> bool {
-        self.pos = std::array::from_fn(|i| self.pos[i].wrapping_add_signed(delta[i]));
-
-        if self.conflicts(grid) {
-            self.pos = std::array::from_fn(|i| self.pos[i].wrapping_add_signed(-delta[i]));
-            return false;
-        }
-
-        true
-    }
-
-    fn rotate(&mut self, angle: u8, grid: &GridState) -> bool {
-        self.angle = (self.angle + angle) % 4;
-
-        if self.conflicts(grid) && !self.try_move([1, 0], grid) && !self.try_move([-1, 0], grid) {
-            self.angle = (self.angle + 4 - angle) % 4;
-            return false;
-        }
-
-        true
-    }
+pub fn piece_covered_cells(
+    kind: PieceKind,
+    pos: GridPos,
+    spin: Spin,
+) -> impl Iterator<Item = GridPos> {
+    kind.rotation(spin).into_iter().map(move |[x, y]| GridPos {
+        x: pos.x.wrapping_add_signed(x),
+        y: pos.y.wrapping_add_signed(y),
+    })
 }
 
-fn piece_spawn(mut commands: Commands, piece: Option<ResMut<FallingPiece>>) {
+fn conflicts(grid: &GridState, kind: PieceKind, pos: GridPos, spin: Spin) -> bool {
+    !piece_covered_cells(kind, pos, spin)
+        .all(|cell| matches!(grid.cell_state(&cell), Some(CellState::Empty)))
+}
+
+pub fn try_move(
+    grid: &GridState,
+    delta: [i8; 2],
+    kind: PieceKind,
+    mut pos: impl DerefMut<Target = GridPos>,
+    spin: Spin,
+) -> bool {
+    let new_pos = GridPos {
+        x: pos.x.wrapping_add_signed(delta[0]),
+        y: pos.y.wrapping_add_signed(delta[1]),
+    };
+
+    if conflicts(grid, kind, new_pos, spin) {
+        return false;
+    }
+
+    *pos = new_pos;
+    true
+}
+
+fn try_rotate(
+    grid: &GridState,
+    delta: Spin,
+    kind: PieceKind,
+    mut pos: Mut<GridPos>,
+    mut spin: Mut<Spin>,
+) -> bool {
+    let new_spin = Spin((spin.0 + delta.0) % 4);
+
+    if conflicts(grid, kind, *pos, new_spin)
+        && !try_move(grid, [1, 0], kind, pos.reborrow(), new_spin)
+        && !try_move(grid, [-1, 0], kind, pos, new_spin)
+    {
+        return false;
+    }
+
+    *spin = new_spin;
+    true
+}
+
+fn piece_spawn(mut commands: Commands, pieces: Query<(), (With<PieceKind>, With<Fall>)>) {
     use rand::seq::SliceRandom;
 
-    if piece.is_none() {
+    if pieces.is_empty() {
         let mut rng = rand::thread_rng();
         let mut pool = PieceKind::all();
         pool.shuffle(&mut rng);
-        commands.insert_resource(FallingPiece::new(pool.into_iter().next().unwrap()));
+
+        commands.spawn({
+            let kind = pool.into_iter().next().unwrap();
+            let x = if kind.base_width() % 2 == 0 { 5 } else { 4 };
+
+            let y = GRID_VISIBLE_HEIGHT.wrapping_add_signed(
+                -kind
+                    .base_shape()
+                    .into_iter()
+                    .map(|[_, y]| y)
+                    .min()
+                    .unwrap_or(0),
+            ) - 1;
+
+            FallingPiece {
+                pos: GridPos { x, y },
+                kind,
+                spin: Spin(0),
+                fall: Fall {
+                    next_trigger: Timer::new(DROP_DELAY, TimerMode::Repeating),
+                },
+            }
+        });
     }
 }
 
 fn piece_fall(
     mut grid: ResMut<GridState>,
     mut commands: Commands,
-    piece: Option<ResMut<FallingPiece>>,
+    mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &Spin, &mut Fall)>,
     time: Res<Time>,
 ) {
-    let Some(mut piece) = piece else { return };
-    piece.time_until_next_fall.tick(time.delta());
+    for (entity, &kind, mut pos, &spin, mut fall) in &mut pieces {
+        fall.next_trigger.tick(time.delta());
 
-    for _ in 0..piece.time_until_next_fall.times_finished_this_tick() {
-        if !piece.try_move([0, -1], &grid) {
-            for Cell(x, y) in piece.iter_cells() {
-                grid.cells[usize::from(x)][usize::from(y)] = CellState::Full(piece.kind);
+        for _ in 0..fall.next_trigger.times_finished_this_tick() {
+            if !try_move(&grid, [0, -1], kind, pos.reborrow(), spin) {
+                for cell in piece_covered_cells(kind, *pos.reborrow(), spin) {
+                    grid.cells[usize::from(cell.x)][usize::from(cell.y)] = CellState::Full(kind);
+                }
+
+                commands.entity(entity).despawn_recursive();
+                break;
             }
-
-            commands.remove_resource::<FallingPiece>();
-            break;
         }
     }
 }
@@ -213,47 +244,46 @@ fn piece_move(
     mut keyboard_input_events: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut grid: ResMut<GridState>,
-    piece: Option<ResMut<FallingPiece>>,
+    mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &mut Spin, &mut Fall)>,
 ) {
-    let Some(mut piece) = piece else { return };
+    for (entity, &kind, mut pos, mut spin, mut fall) in &mut pieces {
+        for event in keyboard_input_events.read() {
+            if event.state != ButtonState::Pressed {
+                continue;
+            }
 
-    for event in keyboard_input_events.read() {
-        if event.state != ButtonState::Pressed {
-            continue;
-        }
-
-        match &event.key_code {
-            KeyCode::ArrowLeft => {
-                piece.try_move([-1, 0], &grid);
-            }
-            KeyCode::ArrowRight => {
-                piece.try_move([1, 0], &grid);
-            }
-            KeyCode::ArrowUp | KeyCode::KeyX => {
-                piece.rotate(3, &grid);
-            }
-            KeyCode::ControlLeft | KeyCode::ControlRight | KeyCode::KeyZ => {
-                piece.rotate(1, &grid);
-            }
-            KeyCode::Space => {
-                if piece.try_move([0, -1], &grid) {
-                    piece.time_until_next_fall.reset();
+            match &event.key_code {
+                KeyCode::ArrowLeft => {
+                    try_move(&grid, [-1, 0], kind, pos.reborrow(), *spin.reborrow());
                 }
-
-                while piece.try_move([0, -1], &grid) {}
-            }
-            KeyCode::ArrowDown => {
-                if piece.try_move([0, -1], &grid) {
-                    piece.time_until_next_fall.reset();
-                } else {
-                    for Cell(x, y) in piece.iter_cells() {
-                        grid.cells[usize::from(x)][usize::from(y)] = CellState::Full(piece.kind);
+                KeyCode::ArrowRight => {
+                    try_move(&grid, [1, 0], kind, pos.reborrow(), *spin.reborrow());
+                }
+                KeyCode::ArrowUp | KeyCode::KeyX => {
+                    try_rotate(&grid, Spin(3), kind, pos.reborrow(), spin.reborrow());
+                }
+                KeyCode::ControlLeft | KeyCode::ControlRight | KeyCode::KeyZ => {
+                    try_rotate(&grid, Spin(1), kind, pos.reborrow(), spin.reborrow());
+                }
+                KeyCode::Space => {
+                    while try_move(&grid, [0, -1], kind, pos.reborrow(), *spin.reborrow()) {
+                        fall.next_trigger.reset();
                     }
-
-                    commands.remove_resource::<FallingPiece>();
                 }
+                KeyCode::ArrowDown => {
+                    if try_move(&grid, [0, -1], kind, pos.reborrow(), *spin.reborrow()) {
+                        fall.next_trigger.reset();
+                    } else {
+                        for cell in piece_covered_cells(kind, *pos.reborrow(), *spin.reborrow()) {
+                            grid.cells[usize::from(cell.x)][usize::from(cell.y)] =
+                                CellState::Full(kind);
+                        }
+
+                        commands.entity(entity).despawn_recursive();
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 }
@@ -290,13 +320,13 @@ fn setup(mut commands: Commands) {
 
 pub struct GameRules;
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UpdateGame;
+
 impl Plugin for GameRules {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_systems(
-                Update,
-                (bevy::input::keyboard::keyboard_input_system).chain(),
-            )
+            .add_systems(Update, bevy::input::keyboard::keyboard_input_system)
             .add_systems(
                 Update,
                 (
@@ -305,6 +335,7 @@ impl Plugin for GameRules {
                     piece_fall,
                     register_completed_lines,
                 )
+                    .in_set(UpdateGame)
                     .chain(),
             );
     }
