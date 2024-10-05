@@ -4,6 +4,7 @@ use std::time::Duration;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::ButtonState;
 use bevy::prelude::*;
+use rand::seq::SliceRandom;
 
 pub const GRID_WIDTH: u8 = 10;
 pub const GRID_HEIGHT: u8 = 22;
@@ -129,6 +130,34 @@ pub struct FallingPiece {
     pub fall: Fall,
 }
 
+#[derive(Resource, Default)]
+pub struct PieceGenerator {
+    pending: Vec<PieceKind>,
+}
+
+impl PieceGenerator {
+    fn ensure_pending_is_not_empty(&mut self) {
+        if !self.pending.is_empty() {
+            return;
+        }
+
+        let mut rng = rand::thread_rng();
+        let mut pool = PieceKind::all();
+        pool.shuffle(&mut rng);
+        self.pending.extend_from_slice(&pool);
+    }
+
+    pub fn next(&mut self) -> PieceKind {
+        self.ensure_pending_is_not_empty();
+        self.pending.pop().unwrap()
+    }
+
+    pub fn _peek(&mut self) -> PieceKind {
+        self.ensure_pending_is_not_empty();
+        self.pending.pop().unwrap()
+    }
+}
+
 pub fn piece_covered_cells(
     kind: PieceKind,
     pos: GridPos,
@@ -185,37 +214,37 @@ fn try_rotate(
     true
 }
 
-fn piece_spawn(mut commands: Commands, pieces: Query<(), (With<PieceKind>, With<Fall>)>) {
-    use rand::seq::SliceRandom;
-
-    if pieces.is_empty() {
-        let mut rng = rand::thread_rng();
-        let mut pool = PieceKind::all();
-        pool.shuffle(&mut rng);
-
-        commands.spawn({
-            let kind = pool.into_iter().next().unwrap();
-            let x = if kind.base_width() % 2 == 0 { 5 } else { 4 };
-
-            let y = GRID_VISIBLE_HEIGHT.wrapping_add_signed(
-                -kind
-                    .base_shape()
-                    .into_iter()
-                    .map(|[_, y]| y)
-                    .min()
-                    .unwrap_or(0),
-            ) - 1;
-
-            FallingPiece {
-                pos: GridPos { x, y },
-                kind,
-                spin: Spin(0),
-                fall: Fall {
-                    next_trigger: Timer::new(DROP_DELAY, TimerMode::Repeating),
-                },
-            }
-        });
+fn piece_spawn(
+    mut commands: Commands,
+    mut piece_generator: ResMut<PieceGenerator>,
+    pieces: Query<(), (With<PieceKind>, With<Fall>)>,
+) {
+    if !pieces.is_empty() {
+        return;
     }
+
+    let kind = piece_generator.next();
+    let x = if kind.base_width() % 2 == 0 { 5 } else { 4 };
+
+    let y = GRID_VISIBLE_HEIGHT.wrapping_add_signed(
+        -kind
+            .base_shape()
+            .into_iter()
+            .map(|[_, y]| y)
+            .min()
+            .unwrap_or(0),
+    ) - 1;
+
+    commands.spawn({
+        FallingPiece {
+            pos: GridPos { x, y },
+            kind,
+            spin: Spin(0),
+            fall: Fall {
+                next_trigger: Timer::new(DROP_DELAY, TimerMode::Repeating),
+            },
+        }
+    });
 }
 
 fn piece_fall(
@@ -325,7 +354,8 @@ pub struct UpdateGame;
 
 impl Plugin for GameRules {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
+        app.init_resource::<PieceGenerator>()
+            .add_systems(Startup, setup)
             .add_systems(Update, bevy::input::keyboard::keyboard_input_system)
             .add_systems(
                 Update,

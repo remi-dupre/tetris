@@ -70,42 +70,6 @@ fn tile_translation(x: u8, y: u8, z: f32) -> Vec3 {
         )
 }
 
-pub struct GameWindow;
-
-impl Plugin for GameWindow {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: WINDOW_TITLE.to_string(),
-                name: Some(WINDOW_CLASS.to_string()),
-                resizable: false,
-                resolution: WindowResolution::new(WINDOW_SIZE[0], WINDOW_SIZE[1]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }))
-        .add_systems(Startup, (setup, setup_background).chain())
-        .add_systems(
-            Update,
-            (
-                (
-                    update_background,
-                    (
-                        attach_piece_tiles,
-                        attach_piece_ghost,
-                        remove_hanging_ghosts,
-                    ),
-                    (update_ghost_pos, update_ghost_spin),
-                    (apply_piece_pos, apply_piece_angle),
-                )
-                    .chain()
-                    .after(UpdateGame),
-                button_pressed,
-            ),
-        );
-    }
-}
-
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -340,5 +304,41 @@ fn button_pressed(
             }
             _ => {}
         }
+    }
+}
+
+pub struct GameWindow;
+
+impl Plugin for GameWindow {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: WINDOW_TITLE.to_string(),
+                name: Some(WINDOW_CLASS.to_string()),
+                resizable: false,
+                resolution: WindowResolution::new(WINDOW_SIZE[0], WINDOW_SIZE[1]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }))
+        .add_systems(Startup, (setup, setup_background).chain())
+        .add_systems(
+            Update,
+            (
+                (
+                    update_background,
+                    (
+                        attach_piece_tiles,
+                        attach_piece_ghost,
+                        remove_hanging_ghosts,
+                    ),
+                    (update_ghost_pos, update_ghost_spin),
+                    (apply_piece_pos, apply_piece_angle),
+                )
+                    .chain()
+                    .after(UpdateGame),
+                button_pressed,
+            ),
+        );
     }
 }
