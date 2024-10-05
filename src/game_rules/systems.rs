@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{DROP_DELAY, GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
 use super::components::{Fall, FallingPieceBundle, GridPos, PieceKind, Spin};
-use super::resources::{CellState, GridState, PieceGenerator};
+use super::resources::{GridState, PieceGenerator};
 
 pub fn piece_spawn(
     mut commands: Commands,
@@ -52,7 +52,7 @@ pub fn piece_fall(
         for _ in 0..fall.next_trigger.times_finished_this_tick() {
             if !grid.try_move([0, -1], kind, pos.reborrow(), spin) {
                 for cell in kind.piece_covered_cells(*pos.reborrow(), spin) {
-                    grid.cells[usize::from(cell.x)][usize::from(cell.y)] = CellState::Full(kind);
+                    grid.spawn_cell(&mut commands, &cell, kind);
                 }
 
                 commands.entity(entity).despawn();
@@ -97,8 +97,7 @@ pub fn piece_move(
                         fall.next_trigger.reset();
                     } else {
                         for cell in kind.piece_covered_cells(*pos.reborrow(), *spin.reborrow()) {
-                            grid.cells[usize::from(cell.x)][usize::from(cell.y)] =
-                                CellState::Full(kind);
+                            grid.spawn_cell(&mut commands, &cell, kind);
                         }
 
                         commands.entity(entity).despawn();
@@ -110,28 +109,32 @@ pub fn piece_move(
     }
 }
 
-pub fn register_completed_lines(mut grid: ResMut<GridState>) {
+pub fn register_completed_lines(mut commands: Commands, mut grid: ResMut<GridState>) {
     if !grid.is_changed() {
         return;
     }
 
     let mut target_line = 0;
 
-    for y in 0..usize::from(GRID_VISIBLE_HEIGHT) {
-        if (0..usize::from(GRID_WIDTH)).all(|x| matches!(grid.cells[x][y], CellState::Full(_))) {
+    for y in 0..GRID_VISIBLE_HEIGHT {
+        if (0..GRID_WIDTH).all(|x| grid.is_filled(&GridPos { x, y })) {
             continue;
         }
 
-        for x in 0..usize::from(GRID_WIDTH) {
-            grid.cells[x][target_line] = std::mem::take(&mut grid.cells[x][y]);
+        for x in 0..GRID_WIDTH {
+            grid.move_to(
+                &mut commands,
+                &GridPos { x, y },
+                &GridPos { x, y: target_line },
+            );
         }
 
         target_line += 1;
     }
 
-    for y in target_line..usize::from(GRID_VISIBLE_HEIGHT) {
-        for x in 0..usize::from(GRID_WIDTH) {
-            grid.cells[x][y] = CellState::Empty;
+    for y in target_line..GRID_VISIBLE_HEIGHT {
+        for x in 0..GRID_WIDTH {
+            grid.despawn_cell(&mut commands, &GridPos { x, y });
         }
     }
 }

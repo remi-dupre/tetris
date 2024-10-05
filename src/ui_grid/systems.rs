@@ -2,11 +2,11 @@ use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 
-use crate::game_rules::components::{Fall, GridPos, PieceKind, Spin};
-use crate::game_rules::resources::{CellState, GridState};
+use crate::game_rules::components::{Fall, FilledCell, GridPos, PieceKind, Spin};
+use crate::game_rules::resources::GridState;
 use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
-use super::components::{BackgroundTile, PieceGhost, PieceTile};
+use super::components::{AlignedOnCellCenter, BackgroundTile, PieceGhost, PieceTile};
 use super::resources::{MaterialCollection, MeshCollection};
 use super::{tile_translation, CELL_SIZE};
 
@@ -35,7 +35,7 @@ pub fn setup_background(
     for x in 0..GRID_WIDTH {
         for y in 0..GRID_VISIBLE_HEIGHT {
             commands.spawn((
-                Name::new(format!("Background Tile ({x}, {y})")),
+                Name::new(format!("Background Tile at ({x}, {y})")),
                 MaterialMesh2dBundle {
                     mesh: meshes.square.clone().into(),
                     transform: Transform::default().with_translation(tile_translation(x, y, -1.0)),
@@ -49,23 +49,21 @@ pub fn setup_background(
     }
 }
 
-pub fn update_background(
-    mut cells: Query<(Mut<Handle<ColorMaterial>>, &GridPos), With<BackgroundTile>>,
-    grid: Res<GridState>,
+// -- Filled Cell's sprites
+
+pub fn attach_filled_cell_sprite(
+    mut commands: Commands,
     materials: Res<MaterialCollection>,
+    meshes: Res<MeshCollection>,
+    newly_filled_cells: Query<(Entity, &GridPos, &FilledCell), Added<FilledCell>>,
 ) {
-    if !grid.is_changed() {
-        return;
-    }
-
-    for (mut material, cell) in cells.iter_mut() {
-        let GridPos { x, y } = cell;
-
-        if let CellState::Full(kind) = &grid.cells[usize::from(*x)][usize::from(*y)] {
-            *material = materials.pieces[*kind].clone();
-        } else {
-            *material = materials.background.clone();
-        }
+    for (entity, pos, filled) in &newly_filled_cells {
+        commands.entity(entity).insert(MaterialMesh2dBundle {
+            mesh: meshes.square.clone().into(),
+            transform: Transform::default().with_translation(tile_translation(pos.x, pos.y, 1.0)),
+            material: materials.pieces[filled.color_from_kind].clone(),
+            ..Default::default()
+        });
     }
 }
 
@@ -78,7 +76,9 @@ pub fn attach_piece_sprite(
     pieces: Query<(Entity, &PieceKind), Added<Fall>>,
 ) {
     for (entity, &kind) in &pieces {
-        commands.entity(entity).insert((
+        let mut cmd = commands.entity(entity);
+
+        cmd.insert((
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.pieces[kind].clone(),
@@ -86,6 +86,10 @@ pub fn attach_piece_sprite(
             },
             PieceTile,
         ));
+
+        if kind.base_width() % 2 == 0 {
+            cmd.insert(AlignedOnCellCenter);
+        }
     }
 }
 
@@ -98,7 +102,7 @@ pub fn attach_piece_ghost(
     pieces: Query<(Entity, &PieceKind, &GridPos, &Spin), Added<Fall>>,
 ) {
     for (entity, &kind, &pos, &spin) in &pieces {
-        commands.spawn((
+        let mut cmd = commands.spawn((
             Name::new("Ghost Piece"),
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
@@ -110,6 +114,10 @@ pub fn attach_piece_ghost(
             spin,
             PieceGhost(entity),
         ));
+
+        if kind.base_width() % 2 == 0 {
+            cmd.insert(AlignedOnCellCenter);
+        }
     }
 }
 
@@ -165,14 +173,14 @@ pub fn update_ghost_spin(
 #[allow(clippy::type_complexity)]
 pub fn apply_sprite_pos(
     mut pieces: Query<
-        (&GridPos, &PieceKind, &mut Transform),
+        (&GridPos, Has<AlignedOnCellCenter>, &mut Transform),
         Or<(Added<Transform>, Changed<GridPos>)>,
     >,
 ) {
-    for (pos, kind, mut transform) in &mut pieces {
+    for (pos, aligned_on_cell_center, mut transform) in &mut pieces {
         transform.translation = tile_translation(pos.x, pos.y, 100.0);
 
-        if kind.base_width() % 2 == 0 {
+        if aligned_on_cell_center {
             transform.translation += Vec3::new(-0.5 * 1.1 * CELL_SIZE, -0.5 * 1.1 * CELL_SIZE, 0.0);
         }
     }

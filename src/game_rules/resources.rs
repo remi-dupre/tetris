@@ -5,39 +5,86 @@ use rand::seq::SliceRandom;
 
 use crate::{GRID_HEIGHT, GRID_WIDTH};
 
-use super::components::{GridPos, PieceKind, Spin};
+use super::components::{FilledCell, GridPos, PieceKind, Spin};
 
-// -- CellState
+// GridState
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CellState {
-    Empty,
-    Full(PieceKind),
-}
-
-impl Default for CellState {
-    fn default() -> Self {
-        Self::Empty
-    }
-}
-
-// -- GridState
-
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct GridState {
-    pub cells: [[CellState; GRID_HEIGHT as _]; GRID_WIDTH as _],
+    cells: [[Option<Entity>; GRID_HEIGHT as _]; GRID_WIDTH as _],
 }
 
 impl GridState {
-    pub fn cell_state(&self, cell: &GridPos) -> Option<&CellState> {
-        let GridPos { x, y } = cell;
-        self.cells.get(usize::from(*x))?.get(usize::from(*y))
+    pub fn is_empty(&self, pos: &GridPos) -> bool {
+        (0..GRID_WIDTH).contains(&pos.x)
+            && (0..GRID_HEIGHT).contains(&pos.y)
+            && !self.is_filled(pos)
+    }
+
+    pub fn is_filled(&self, pos: &GridPos) -> bool {
+        self.get_filled_entity(pos).is_some()
+    }
+
+    pub fn get_filled_entity(&self, pos: &GridPos) -> Option<&Entity> {
+        self.cells
+            .get(usize::from(pos.x))?
+            .get(usize::from(pos.y))
+            .as_ref()?
+            .as_ref()
+    }
+
+    pub fn spawn_cell(
+        &mut self,
+        commands: &mut Commands,
+        pos: &GridPos,
+        color_from_kind: PieceKind,
+    ) {
+        assert!(self.is_empty(pos));
+
+        let entity = commands
+            .spawn((
+                Name::new(format!("Filled Cell at {pos}")),
+                *pos,
+                FilledCell { color_from_kind },
+            ))
+            .id();
+
+        self.cells[usize::from(pos.x)][usize::from(pos.y)] = Some(entity);
+    }
+
+    pub fn despawn_cell(&mut self, commands: &mut Commands, pos: &GridPos) -> bool {
+        let Some(&entity) = self.get_filled_entity(pos) else {
+            return false;
+        };
+
+        commands.entity(entity).despawn();
+        self.cells[usize::from(pos.x)][usize::from(pos.y)] = None;
+        true
+    }
+
+    pub fn move_to(&mut self, commands: &mut Commands, from: &GridPos, to: &GridPos) -> bool {
+        if from == to {
+            return false;
+        }
+
+        if let Some(&removed_entity) = self.get_filled_entity(to) {
+            commands.entity(removed_entity).despawn();
+        }
+
+        if let Some(&moved_entity) = self.get_filled_entity(from) {
+            commands.entity(moved_entity).insert(*to);
+        };
+
+        self.cells[usize::from(to.x)][usize::from(to.y)] =
+            self.cells[usize::from(from.x)][usize::from(from.y)].take();
+
+        true
     }
 
     fn conflicts(&self, kind: PieceKind, pos: GridPos, spin: Spin) -> bool {
         !kind
             .piece_covered_cells(pos, spin)
-            .all(|cell| matches!(self.cell_state(&cell), Some(CellState::Empty)))
+            .all(|pos| self.is_empty(&pos))
     }
 
     pub fn try_move(
@@ -78,14 +125,6 @@ impl GridState {
 
         *spin = new_spin;
         true
-    }
-}
-
-impl Default for GridState {
-    fn default() -> Self {
-        Self {
-            cells: std::array::from_fn(|_| std::array::from_fn(|_| CellState::Empty)),
-        }
     }
 }
 

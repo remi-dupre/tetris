@@ -78,10 +78,21 @@ impl PieceKind {
     }
 }
 
-#[derive(Component, Clone, Copy, Debug, Default)]
+#[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct GridPos {
     pub x: u8,
     pub y: u8,
+}
+
+impl std::fmt::Display for GridPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+#[derive(Component)]
+pub struct FilledCell {
+    pub color_from_kind: PieceKind,
 }
 
 #[derive(Component, Clone, Default)]

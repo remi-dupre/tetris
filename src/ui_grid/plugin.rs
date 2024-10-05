@@ -22,14 +22,17 @@ impl Plugin for GameWindow {
                 Update,
                 (
                     button_pressed,
-                    update_background,
                     (
-                        (attach_piece_sprite, update_ghost_state),
+                        (
+                            attach_piece_sprite,
+                            attach_filled_cell_sprite,
+                            update_ghost_state,
+                        ),
                         (apply_sprite_pos, apply_sprite_angle),
                     )
-                        .chain(),
-                )
-                    .after(UpdateGame),
+                        .chain()
+                        .after(UpdateGame),
+                ),
             );
     }
 }
