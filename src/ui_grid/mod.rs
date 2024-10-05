@@ -19,8 +19,8 @@ pub const GRID_POSITION: Vec3 = Vec3::new(
 pub fn tile_translation(x: u8, y: u8, z: f32) -> Vec3 {
     GRID_POSITION
         + Vec3::new(
-            CELL_SIZE / 2.0 + (1.1 * CELL_SIZE) * f32::from(x),
-            CELL_SIZE / 2.0 + (1.1 * CELL_SIZE) * f32::from(y),
+            CELL_SIZE / 2.0 + CELL_SIZE * f32::from(x),
+            CELL_SIZE / 2.0 + CELL_SIZE * f32::from(y),
             z,
         )
 }

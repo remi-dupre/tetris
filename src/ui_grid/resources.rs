@@ -5,24 +5,26 @@ use crate::game_rules::components::PieceKind;
 
 use super::CELL_SIZE;
 
+const BLOCK_SQUARE_SIZE: f32 = 0.9;
+const BLOCK_SQUARE_SMALL_SIZE: f32 = 0.85;
+
 #[derive(Resource)]
 pub struct MeshCollection {
     pub pieces: EnumMap<PieceKind, Handle<Mesh>>,
+    pub pieces_small_blocks: EnumMap<PieceKind, Handle<Mesh>>,
     pub square: Handle<Mesh>,
 }
 
 impl FromWorld for MeshCollection {
     fn from_world(world: &mut World) -> Self {
-        let pieces = EnumMap::from_fn(|piece_kind: PieceKind| {
+        let mut mesh_piece = |piece_kind: PieceKind, square_size| {
             let mesh = piece_kind
                 .base_shape()
                 .into_iter()
                 .map(|[x, y]| {
-                    Mesh::from(Rectangle::from_length(CELL_SIZE)).translated_by(Vec3::new(
-                        (1.1 * CELL_SIZE) * f32::from(x),
-                        (1.1 * CELL_SIZE) * f32::from(y),
-                        0.0,
-                    ))
+                    Mesh::from(Rectangle::from_length(CELL_SIZE * square_size)).translated_by(
+                        [CELL_SIZE * f32::from(x), CELL_SIZE * f32::from(y), 0.0].into(),
+                    )
                 })
                 .reduce(|mut x, y| {
                     x.merge(&y);
@@ -31,17 +33,23 @@ impl FromWorld for MeshCollection {
                 .unwrap()
                 .translated_by({
                     if piece_kind.base_width() % 2 == 0 {
-                        Vec3::new(0.5 * 1.1 * CELL_SIZE, 0.5 * 1.1 * CELL_SIZE, 0.0)
+                        [0.5 * CELL_SIZE, 0.5 * CELL_SIZE, 0.0].into()
                     } else {
-                        Vec3::new(0.0, 0.0, 0.0)
+                        [0.0, 0.0, 0.0].into()
                     }
                 });
 
             world.add_asset(mesh)
-        });
+        };
+
+        let pieces = EnumMap::from_fn(|piece_kind| mesh_piece(piece_kind, BLOCK_SQUARE_SIZE));
+
+        let pieces_small_blocks =
+            EnumMap::from_fn(|piece_kind| mesh_piece(piece_kind, BLOCK_SQUARE_SMALL_SIZE));
 
         Self {
-            square: world.add_asset(Rectangle::from_length(CELL_SIZE)),
+            square: world.add_asset(Rectangle::from_length(CELL_SIZE * BLOCK_SQUARE_SIZE)),
+            pieces_small_blocks,
             pieces,
         }
     }
@@ -69,9 +77,8 @@ impl FromWorld for MaterialCollection {
         let background = world.add_asset(Color::srgb(0.2, 0.2, 0.2));
         let pieces = EnumMap::from_fn(|kind| world.add_asset(base_color(kind)));
 
-        let ghosts = EnumMap::from_fn(|kind| {
-            world.add_asset(base_color(kind).mix(&Color::WHITE, 0.8).with_alpha(0.5))
-        });
+        let ghosts =
+            EnumMap::from_fn(|kind| world.add_asset(base_color(kind).mix(&Color::WHITE, 0.8)));
 
         Self {
             pieces,

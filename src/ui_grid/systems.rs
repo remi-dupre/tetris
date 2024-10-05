@@ -80,7 +80,7 @@ pub fn attach_piece_sprite(
     for (entity, &kind) in &pieces {
         commands.entity(entity).insert((
             MaterialMesh2dBundle {
-                mesh: meshes.pieces[kind].clone().into(),
+                mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.pieces[kind].clone(),
                 ..Default::default()
             },
@@ -101,7 +101,7 @@ pub fn attach_piece_ghost(
         commands.spawn((
             Name::new("Ghost Piece"),
             MaterialMesh2dBundle {
-                mesh: meshes.pieces[kind].clone().into(),
+                mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.ghosts[kind].clone(),
                 ..Default::default()
             },
