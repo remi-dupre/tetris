@@ -3,14 +3,15 @@ use bevy::prelude::*;
 use super::resources::*;
 use super::systems::*;
 
-pub struct GameRules;
-
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UpdateGame;
+pub struct GameUpdateSystems;
 
-impl Plugin for GameRules {
+pub struct GameRulesPlugin;
+
+impl Plugin for GameRulesPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PieceGenerator>()
+            .init_resource::<Score>()
             .init_resource::<GridState>()
             .add_systems(Update, bevy::input::keyboard::keyboard_input_system)
             .add_systems(
@@ -21,7 +22,7 @@ impl Plugin for GameRules {
                     piece_fall,
                     register_completed_lines,
                 )
-                    .in_set(UpdateGame)
+                    .in_set(GameUpdateSystems)
                     .chain(),
             );
     }

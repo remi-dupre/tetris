@@ -128,6 +128,11 @@ impl GridState {
     }
 }
 
+// -- Score
+
+#[derive(Resource, Default)]
+pub struct Score(pub u64);
+
 // -- PieceGenerator
 
 #[derive(Resource, Default)]

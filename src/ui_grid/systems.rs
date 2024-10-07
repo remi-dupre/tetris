@@ -2,22 +2,22 @@ use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
 
+use crate::common::resources::ColorPalette;
 use crate::game_rules::components::{Fall, FilledCell, GridPos, PieceKind, Spin};
 use crate::game_rules::resources::GridState;
-use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
-use super::components::{AlignedOnCellCenter, BackgroundTile, PieceGhost, PieceTile};
-use super::resources::{MaterialCollection, MeshCollection};
+use super::components::*;
+use super::resources::*;
 use super::{tile_translation, CELL_SIZE};
 
 // -- Camera
 
-pub fn setup_camera(mut commands: Commands) {
+pub fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
     commands.spawn((
         Name::new("Main Camera"),
         Camera2dBundle {
             camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::srgb(0.1, 0.1, 0.1)),
+                clear_color: ClearColorConfig::Custom(palette.background_1.color),
                 ..Camera::default()
             },
             ..Camera2dBundle::default()
@@ -25,45 +25,65 @@ pub fn setup_camera(mut commands: Commands) {
     ));
 }
 
-// -- Background
+// -- Static decoration
 
-pub fn setup_background(
+pub fn draw_frame(
     mut commands: Commands,
-    materials: Res<MaterialCollection>,
     meshes: Res<MeshCollection>,
+    palette: Res<ColorPalette>,
+    root: Res<UiGridRoot>,
 ) {
-    for x in 0..GRID_WIDTH {
-        for y in 0..GRID_VISIBLE_HEIGHT {
-            commands.spawn((
-                Name::new(format!("Background Tile at ({x}, {y})")),
-                MaterialMesh2dBundle {
-                    mesh: meshes.square.clone().into(),
-                    transform: Transform::default().with_translation(tile_translation(x, y, -1.0)),
-                    material: materials.background.clone(),
-                    ..Default::default()
-                },
-                BackgroundTile,
-                GridPos { x, y },
-            ));
-        }
-    }
+    commands
+        .spawn((
+            Name::new("Grid Frame"),
+            MaterialMesh2dBundle {
+                mesh: meshes.frame.clone().into(),
+                transform: Transform::from_translation([0.0, 0.0, 100.0].into()),
+                material: palette.background_2.material.clone(),
+                ..Default::default()
+            },
+        ))
+        .set_parent(**root);
+}
+
+pub fn draw_background(
+    mut commands: Commands,
+    meshes: Res<MeshCollection>,
+    palette: Res<ColorPalette>,
+    root: Res<UiGridRoot>,
+) {
+    commands
+        .spawn((
+            Name::new("Background Grid"),
+            MaterialMesh2dBundle {
+                mesh: meshes.grid.clone().into(),
+                material: palette.background_2.material.clone(),
+                ..Default::default()
+            },
+        ))
+        .set_parent(**root);
 }
 
 // -- Filled Cell's sprites
 
 pub fn attach_filled_cell_sprite(
     mut commands: Commands,
+    root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
     meshes: Res<MeshCollection>,
     newly_filled_cells: Query<(Entity, &GridPos, &FilledCell), Added<FilledCell>>,
 ) {
     for (entity, pos, filled) in &newly_filled_cells {
-        commands.entity(entity).insert(MaterialMesh2dBundle {
-            mesh: meshes.square.clone().into(),
-            transform: Transform::default().with_translation(tile_translation(pos.x, pos.y, 1.0)),
-            material: materials.pieces[filled.color_from_kind].clone(),
-            ..Default::default()
-        });
+        commands
+            .entity(entity)
+            .insert(MaterialMesh2dBundle {
+                mesh: meshes.square.clone().into(),
+                transform: Transform::default()
+                    .with_translation(tile_translation(pos.x, pos.y, 1.0)),
+                material: materials.pieces[filled.color_from_kind].clone(),
+                ..Default::default()
+            })
+            .set_parent(**root); // TODO: should be a separate entity
     }
 }
 
@@ -71,6 +91,7 @@ pub fn attach_filled_cell_sprite(
 
 pub fn attach_piece_sprite(
     mut commands: Commands,
+    root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
     meshes: Res<MeshCollection>,
     pieces: Query<(Entity, &PieceKind), Added<Fall>>,
@@ -82,10 +103,12 @@ pub fn attach_piece_sprite(
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.pieces[kind].clone(),
+                transform: Transform::from_translation([0.0, 0.0, 100.0].into()),
                 ..Default::default()
             },
             PieceTile,
-        ));
+        ))
+        .set_parent(**root); // TODO: should be a separate entity
 
         if kind.base_width() % 2 == 0 {
             cmd.insert(AlignedOnCellCenter);
@@ -97,6 +120,7 @@ pub fn attach_piece_sprite(
 
 pub fn attach_piece_ghost(
     mut commands: Commands,
+    root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
     meshes: Res<MeshCollection>,
     pieces: Query<(Entity, &PieceKind, &GridPos, &Spin), Added<Fall>>,
@@ -107,6 +131,7 @@ pub fn attach_piece_ghost(
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.ghosts[kind].clone(),
+                transform: Transform::from_translation([0.0, 0.0, 50.0].into()),
                 ..Default::default()
             },
             kind,
@@ -118,6 +143,8 @@ pub fn attach_piece_ghost(
         if kind.base_width() % 2 == 0 {
             cmd.insert(AlignedOnCellCenter);
         }
+
+        cmd.set_parent(**root);
     }
 }
 
@@ -178,10 +205,10 @@ pub fn apply_sprite_pos(
     >,
 ) {
     for (pos, aligned_on_cell_center, mut transform) in &mut pieces {
-        transform.translation = tile_translation(pos.x, pos.y, 100.0);
+        transform.translation = tile_translation(pos.x, pos.y, transform.translation.z);
 
         if aligned_on_cell_center {
-            transform.translation += Vec3::new(-0.5 * 1.1 * CELL_SIZE, -0.5 * 1.1 * CELL_SIZE, 0.0);
+            transform.translation += Vec3::new(-0.5 * CELL_SIZE, -0.5 * CELL_SIZE, 0.0);
         }
     }
 }

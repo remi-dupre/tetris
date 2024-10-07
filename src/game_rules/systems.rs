@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{DROP_DELAY, GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
 use super::components::{Fall, FallingPieceBundle, GridPos, PieceKind, Spin};
-use super::resources::{GridState, PieceGenerator};
+use super::resources::{GridState, PieceGenerator, Score};
 
 pub fn piece_spawn(
     mut commands: Commands,
@@ -109,7 +109,11 @@ pub fn piece_move(
     }
 }
 
-pub fn register_completed_lines(mut commands: Commands, mut grid: ResMut<GridState>) {
+pub fn register_completed_lines(
+    mut commands: Commands,
+    mut grid: ResMut<GridState>,
+    mut score: ResMut<Score>,
+) {
     if !grid.is_changed() {
         return;
     }
@@ -132,9 +136,21 @@ pub fn register_completed_lines(mut commands: Commands, mut grid: ResMut<GridSta
         target_line += 1;
     }
 
+    let cleared_lines = GRID_VISIBLE_HEIGHT - target_line;
+
     for y in target_line..GRID_VISIBLE_HEIGHT {
         for x in 0..GRID_WIDTH {
             grid.despawn_cell(&mut commands, &GridPos { x, y });
         }
+    }
+
+    // TODO: Handle scoring through event
+
+    match cleared_lines {
+        0 => {}
+        1 => score.0 += 40,
+        2 => score.0 += 100,
+        3 => score.0 += 300,
+        _ => score.0 += 1200,
     }
 }

@@ -1,14 +1,18 @@
 //! Guidelines : https://harddrop.com/wiki/Tetris_Guideline
 
+pub mod common;
 pub mod game_rules;
 pub mod ui_grid;
+pub mod ui_side;
 
 use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 
-use crate::ui_grid::{WINDOW_CLASS, WINDOW_SIZE, WINDOW_TITLE};
+const WINDOW_TITLE: &str = "Tetris (Bevy Engine)";
+const WINDOW_CLASS: &str = "org.remi-dupre.testing";
+const WINDOW_SIZE: [f32; 2] = [600., 800.];
 
 const GRID_WIDTH: u8 = 10;
 const GRID_HEIGHT: u8 = 22;
@@ -28,6 +32,17 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((game_rules::plugin::GameRules, ui_grid::plugin::GameWindow))
+        .add_plugins((
+            common::plugin::CommonPlugin,
+            game_rules::plugin::GameRulesPlugin,
+            ui_grid::plugin::UiGridPlugin {
+                pos: [-100.0, 0.0], // x: -300..100 ; y: -400..400
+                size: [400.0, 800.0],
+            },
+            ui_side::plugin::UiSidePlugin {
+                pos: [200.0, 0.0], // x: 100..300 ; y: -400..400
+                size: [200.0, 800.0],
+            },
+        ))
         .run();
 }
