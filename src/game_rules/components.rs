@@ -43,6 +43,25 @@ impl PieceKind {
         }
     }
 
+    /// Wall kick directions when increasing angle.
+    /// See https://tetris.fandom.com/wiki/SRS
+    pub const fn wall_kick_incr_dirs(self) -> [[[i8; 2]; 4]; 4] {
+        match self {
+            Self::I => [
+                [[-2, 0], [1, 0], [-2, -1], [1, 2]],
+                [[-1, 0], [2, 0], [-1, 2], [2, -1]],
+                [[2, 0], [-1, 0], [2, 1], [-1, 2]],
+                [[1, 0], [-2, 0], [1, -2], [-2, 1]],
+            ],
+            _ => [
+                [[-1, 0], [-1, 1], [0, -2], [-1, -2]],
+                [[1, 0], [1, -1], [0, 2], [1, 2]],
+                [[1, 0], [1, 1], [0, -2], [1, -2]],
+                [[-1, 0], [-1, -1], [0, 2], [-1, 2]],
+            ],
+        }
+    }
+
     const fn rotation(self, spin: Spin) -> [[i8; 2]; 4] {
         let mut cells = self.base_shape();
         let mut steps = spin.0 % 4;
@@ -52,7 +71,7 @@ impl PieceKind {
             let mut i = 0;
 
             while i < 4 {
-                cells[i] = [-cells[i][1] - bbox_is_even, cells[i][0]];
+                cells[i] = [cells[i][1], -cells[i][0] - bbox_is_even];
                 i += 1;
             }
 

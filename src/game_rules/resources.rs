@@ -110,24 +110,39 @@ impl GridState {
         true
     }
 
-    pub fn try_rotate(
+    fn try_rotate(
         &self,
         delta: Spin,
         kind: PieceKind,
         mut pos: Mut<GridPos>,
         mut spin: Mut<Spin>,
+        kick_directions: impl IntoIterator<Item = [i8; 2]>,
     ) -> bool {
         let new_spin = Spin((spin.0 + delta.0) % 4);
 
         if self.conflicts(kind, *pos, new_spin)
-            && !self.try_move([1, 0], kind, pos.reborrow(), new_spin)
-            && !self.try_move([-1, 0], kind, pos, new_spin)
+            && !kick_directions
+                .into_iter()
+                .any(|dir| self.try_move(dir, kind, pos.reborrow(), new_spin))
         {
             return false;
         }
 
         *spin = new_spin;
         true
+    }
+
+    pub fn try_rotate_right(&self, kind: PieceKind, pos: Mut<GridPos>, spin: Mut<Spin>) -> bool {
+        let kick_directions = kind.wall_kick_incr_dirs()[usize::from(spin.0 % 4)];
+        self.try_rotate(Spin(1), kind, pos, spin, kick_directions)
+    }
+
+    pub fn try_rotate_left(&self, kind: PieceKind, pos: Mut<GridPos>, spin: Mut<Spin>) -> bool {
+        let kick_directions = kind.wall_kick_incr_dirs()[usize::from((spin.0 + 3) % 4)]
+            .into_iter()
+            .map(|[x, y]| [-x, -y]);
+
+        self.try_rotate(Spin(3), kind, pos, spin, kick_directions)
     }
 }
 

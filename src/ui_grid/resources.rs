@@ -182,8 +182,8 @@ impl FromWorld for MaterialCollection {
             PieceKind::T => Color::srgb(0.5, 0.0, 0.5), // purple
             PieceKind::S => Color::srgb(0.0, 1.0, 0.0), // green
             PieceKind::Z => Color::srgb(1.0, 0.0, 0.0), // red
-            PieceKind::J => Color::srgb(1.0, 0.5, 0.0), // orange
-            PieceKind::L => Color::srgb(0.0, 0.0, 1.0), // blue
+            PieceKind::J => Color::srgb(0.0, 0.0, 1.0), // blue
+            PieceKind::L => Color::srgb(1.0, 0.5, 0.0), // orange
         };
 
         let ghosts = EnumMap::from_fn(|kind| {

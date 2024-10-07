@@ -92,10 +92,10 @@ pub fn piece_move(
                     grid.try_move([1, 0], kind, pos.reborrow(), *spin.reborrow());
                 }
                 KeyCode::ArrowUp | KeyCode::KeyX => {
-                    grid.try_rotate(Spin(3), kind, pos.reborrow(), spin.reborrow());
+                    grid.try_rotate_right(kind, pos.reborrow(), spin.reborrow());
                 }
                 KeyCode::ControlLeft | KeyCode::ControlRight | KeyCode::KeyZ => {
-                    grid.try_rotate(Spin(1), kind, pos.reborrow(), spin.reborrow());
+                    grid.try_rotate_left(kind, pos.reborrow(), spin.reborrow());
                 }
                 KeyCode::Space => {
                     while grid.try_move([0, -1], kind, pos.reborrow(), *spin) {}

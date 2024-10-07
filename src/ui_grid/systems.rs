@@ -212,8 +212,8 @@ pub fn apply_sprite_pos(
 }
 
 pub fn apply_sprite_angle(mut pieces: Query<(&Spin, &mut Transform), Changed<Spin>>) {
-    for (Spin(angle), mut transform) in &mut pieces {
-        transform.rotation = Quat::from_rotation_z(f32::from(*angle) * std::f32::consts::PI / 2.0);
+    for (&Spin(spin), mut transform) in &mut pieces {
+        transform.rotation = Quat::from_rotation_z(-f32::from(spin) * std::f32::consts::PI / 2.0);
     }
 }
 
