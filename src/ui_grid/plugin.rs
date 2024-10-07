@@ -17,12 +17,6 @@ impl Plugin for UiGridPlugin {
             size: self.size,
         });
 
-        let update_ghost_state = (
-            (attach_piece_ghost, remove_hanging_piece_ghost),
-            (update_ghost_pos, update_ghost_spin),
-        )
-            .chain();
-
         app.init_resource::<MaterialCollection>()
             .init_resource::<MeshCollection>()
             .init_resource::<UiGridRoot>()
@@ -32,12 +26,17 @@ impl Plugin for UiGridPlugin {
                 (
                     button_pressed,
                     (
-                        (
-                            attach_piece_sprite,
-                            attach_filled_cell_sprite,
-                            update_ghost_state,
-                        ),
-                        (apply_sprite_pos, apply_sprite_angle),
+                        // Ghost
+                        (attach_piece_ghost, remove_hanging_piece_ghost),
+                        update_ghost_pos,
+                        update_ghost_spin,
+                        // Sprite
+                        attach_piece_sprite,
+                        // Grid
+                        attach_filled_cell_sprite,
+                        // Generic transforms
+                        apply_sprite_pos,
+                        apply_sprite_angle,
                     )
                         .chain()
                         .after(GameUpdateSystems),

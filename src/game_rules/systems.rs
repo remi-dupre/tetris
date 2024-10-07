@@ -4,8 +4,8 @@ use bevy::prelude::*;
 
 use crate::{DROP_DELAY, GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
-use super::components::{Fall, FallingPieceBundle, GridPos, PieceKind, Spin};
-use super::resources::{GridState, PieceGenerator, Score};
+use super::components::*;
+use super::resources::*;
 
 pub fn piece_spawn(
     mut commands: Commands,
@@ -28,7 +28,8 @@ pub fn piece_spawn(
             .unwrap_or(0),
     ) - 1;
 
-    commands.spawn({
+    commands.spawn((
+        Name::new("Falling Piece"),
         FallingPieceBundle {
             pos: GridPos { x, y },
             kind,
@@ -36,18 +37,27 @@ pub fn piece_spawn(
             fall: Fall {
                 next_trigger: Timer::new(DROP_DELAY, TimerMode::Repeating),
             },
-        }
-    });
+        },
+    ));
 }
 
 pub fn piece_fall(
     mut grid: ResMut<GridState>,
     mut commands: Commands,
-    mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &Spin, &mut Fall)>,
+    mut piece: Query<(Entity, &PieceKind, &mut GridPos, &Spin, &mut Fall)>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    for (entity, &kind, mut pos, &spin, mut fall) in &mut pieces {
-        fall.next_trigger.tick(time.delta());
+    let delta = {
+        if keyboard.any_pressed([KeyCode::ArrowDown]) {
+            SOFT_DROP_SPEEDUP * time.delta()
+        } else {
+            time.delta()
+        }
+    };
+
+    for (entity, &kind, mut pos, &spin, mut fall) in &mut piece {
+        fall.next_trigger.tick(delta);
 
         for _ in 0..fall.next_trigger.times_finished_this_tick() {
             if !grid.try_move([0, -1], kind, pos.reborrow(), spin) {
@@ -55,7 +65,7 @@ pub fn piece_fall(
                     grid.spawn_cell(&mut commands, &cell, kind);
                 }
 
-                commands.entity(entity).despawn();
+                commands.entity(entity).despawn_recursive();
                 break;
             }
         }
@@ -66,9 +76,9 @@ pub fn piece_move(
     mut keyboard_input_events: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut grid: ResMut<GridState>,
-    mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &mut Spin, &mut Fall)>,
+    mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &mut Spin), With<Fall>>,
 ) {
-    for (entity, &kind, mut pos, mut spin, mut fall) in &mut pieces {
+    for (entity, &kind, mut pos, mut spin) in &mut pieces {
         for event in keyboard_input_events.read() {
             if event.state != ButtonState::Pressed {
                 continue;
@@ -88,20 +98,14 @@ pub fn piece_move(
                     grid.try_rotate(Spin(1), kind, pos.reborrow(), spin.reborrow());
                 }
                 KeyCode::Space => {
-                    while grid.try_move([0, -1], kind, pos.reborrow(), *spin.reborrow()) {
-                        fall.next_trigger.reset();
-                    }
-                }
-                KeyCode::ArrowDown => {
-                    if grid.try_move([0, -1], kind, pos.reborrow(), *spin.reborrow()) {
-                        fall.next_trigger.reset();
-                    } else {
-                        for cell in kind.piece_covered_cells(*pos.reborrow(), *spin.reborrow()) {
-                            grid.spawn_cell(&mut commands, &cell, kind);
-                        }
+                    while grid.try_move([0, -1], kind, pos.reborrow(), *spin) {}
 
-                        commands.entity(entity).despawn();
+                    for cell in kind.piece_covered_cells(*pos.reborrow(), *spin) {
+                        grid.spawn_cell(&mut commands, &cell, kind);
                     }
+
+                    commands.entity(entity).despawn_recursive();
+                    break;
                 }
                 _ => {}
             }

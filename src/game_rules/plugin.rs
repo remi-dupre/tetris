@@ -1,3 +1,4 @@
+use bevy::input::keyboard::keyboard_input_system;
 use bevy::prelude::*;
 
 use super::resources::*;
@@ -18,12 +19,12 @@ impl Plugin for GameRulesPlugin {
                 Update,
                 (
                     piece_spawn,
-                    piece_move,
+                    piece_move.after(keyboard_input_system),
                     piece_fall,
                     register_completed_lines,
                 )
-                    .in_set(GameUpdateSystems)
-                    .chain(),
+                    .chain()
+                    .in_set(GameUpdateSystems),
             );
     }
 }

@@ -7,6 +7,7 @@ pub mod ui_side;
 
 use std::time::Duration;
 
+use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 
@@ -44,5 +45,11 @@ fn main() {
                 size: [200.0, 800.0],
             },
         ))
+        .edit_schedule(Update, |schedule| {
+            schedule.set_build_settings(ScheduleBuildSettings {
+                ambiguity_detection: LogLevel::Warn,
+                ..default()
+            });
+        })
         .run();
 }

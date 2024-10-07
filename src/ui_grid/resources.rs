@@ -5,13 +5,17 @@ use enum_map::EnumMap;
 
 use crate::common::resources::ColorPalette;
 use crate::game_rules::components::PieceKind;
-use crate::ui_grid::BORDER_SIZE;
 use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
-use super::{CELL_SIZE, UI_GRID_VIRTUAL_HEIGHT, UI_GRID_VIRTUAL_WIDTH};
+// Shape of the area
+pub(crate) const UI_GRID_VIRTUAL_HEIGHT: f32 = 800.0;
+pub(crate) const UI_GRID_VIRTUAL_WIDTH: f32 = 400.0;
 
-const BLOCK_SQUARE_SIZE: f32 = 0.9;
-const BLOCK_SQUARE_SMALL_SIZE: f32 = 0.75;
+// Size of elements
+pub(crate) const CELL_SIZE: f32 = (UI_GRID_VIRTUAL_WIDTH - BORDER_SIZE) / 10.0;
+pub(crate) const BORDER_SIZE: f32 = 20.0;
+pub(crate) const BLOCK_SQUARE_RATIO: f32 = 0.9;
+pub(crate) const BLOCK_SQUARE_SMALL_RATIO: f32 = 0.75;
 
 // Config
 
@@ -139,7 +143,7 @@ impl FromWorld for MeshCollection {
         let pieces = EnumMap::from_fn(|piece_kind: PieceKind| {
             world.add_asset(mesh_piece(
                 piece_kind.base_shape().into_iter(),
-                BLOCK_SQUARE_SIZE,
+                BLOCK_SQUARE_RATIO,
                 piece_kind.base_width() % 2 == 0,
             ))
         });
@@ -147,13 +151,13 @@ impl FromWorld for MeshCollection {
         let pieces_small_blocks = EnumMap::from_fn(|piece_kind: PieceKind| {
             world.add_asset(mesh_piece(
                 piece_kind.base_shape().into_iter(),
-                BLOCK_SQUARE_SMALL_SIZE,
+                BLOCK_SQUARE_SMALL_RATIO,
                 piece_kind.base_width() % 2 == 0,
             ))
         });
 
         Self {
-            square: world.add_asset(Rectangle::from_length(CELL_SIZE * BLOCK_SQUARE_SIZE)),
+            square: world.add_asset(Rectangle::from_length(CELL_SIZE * BLOCK_SQUARE_RATIO)),
             frame,
             grid,
             pieces_small_blocks,

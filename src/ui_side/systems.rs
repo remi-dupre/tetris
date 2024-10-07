@@ -9,26 +9,22 @@ use super::resources::*;
 use super::UI_SIDE_VIRTUAL_WIDTH;
 
 pub fn setup_background(
-    world: &mut World,
-    // meshes: Res<MeshCollection>,
-    // palette: Res<ColorPalette>,
+    mut commands: Commands,
+    meshes: Res<MeshCollection>,
+    palette: Res<ColorPalette>,
+    root: Res<UiSideRoot>,
 ) {
-    // TODO
-    let palette: ColorPalette = world.resource::<ColorPalette>().clone();
-    let mesh = world.resource::<MeshCollection>().background.clone().into();
-    let parent = **world.resource::<UiSideRoot>();
-
-    world
+    commands
         .spawn((
             Name::new("Side Background"),
             ColorMesh2dBundle {
-                mesh,
+                mesh: meshes.background.clone().into(),
                 material: palette.background_2.material.clone(),
                 transform: Transform::from_translation([0.0, 0.0, -100.0].into()),
                 ..Default::default()
             },
         ))
-        .set_parent(parent);
+        .set_parent(**root);
 }
 
 pub fn setup_score_pannel(

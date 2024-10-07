@@ -12,9 +12,10 @@ version = "0.14"
 default-features = false
 features = [
     "bevy_color",
+    "bevy_dev_tools",
     "bevy_sprite",
     "bevy_text",
-    "bevy_dev_tools",
+    "bevy_ui",
     "wayland",
     "x11",
 ]

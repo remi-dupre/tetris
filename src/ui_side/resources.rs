@@ -36,11 +36,11 @@ impl FromWorld for UiSideRoot {
                 Transform::default()
                     .with_translation([config.pos[0], config.pos[1], 100.0].into())
                     .with_scale(
-                        dbg!([
+                        [
                             config.size[0] / UI_SIDE_VIRTUAL_WIDTH,
                             config.size[1] / UI_SIDE_VIRTUAL_HEIGHT,
                             1.0,
-                        ])
+                        ]
                         .into(),
                     ),
                 GlobalTransform::default(),

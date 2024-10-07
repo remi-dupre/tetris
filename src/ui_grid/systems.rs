@@ -8,7 +8,7 @@ use crate::game_rules::resources::GridState;
 
 use super::components::*;
 use super::resources::*;
-use super::{tile_translation, CELL_SIZE};
+use super::tile_translation;
 
 // -- Camera
 
@@ -38,7 +38,6 @@ pub fn draw_frame(
             Name::new("Grid Frame"),
             MaterialMesh2dBundle {
                 mesh: meshes.frame.clone().into(),
-                transform: Transform::from_translation([0.0, 0.0, 100.0].into()),
                 material: palette.background_2.material.clone(),
                 ..Default::default()
             },
@@ -76,13 +75,13 @@ pub fn attach_filled_cell_sprite(
     for (entity, pos, filled) in &newly_filled_cells {
         commands
             .entity(entity)
-            .insert(MaterialMesh2dBundle {
+            .insert((MaterialMesh2dBundle {
                 mesh: meshes.square.clone().into(),
                 transform: Transform::default()
-                    .with_translation(tile_translation(pos.x, pos.y, 1.0)),
+                    .with_translation(tile_translation(pos.x, pos.y, 0.0)),
                 material: materials.pieces[filled.color_from_kind].clone(),
                 ..Default::default()
-            })
+            },))
             .set_parent(**root); // TODO: should be a separate entity
     }
 }
@@ -100,13 +99,13 @@ pub fn attach_piece_sprite(
         let mut cmd = commands.entity(entity);
 
         cmd.insert((
+            PieceTile,
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.pieces[kind].clone(),
                 transform: Transform::from_translation([0.0, 0.0, 100.0].into()),
                 ..Default::default()
             },
-            PieceTile,
         ))
         .set_parent(**root); // TODO: should be a separate entity
 
@@ -131,7 +130,6 @@ pub fn attach_piece_ghost(
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
                 material: materials.ghosts[kind].clone(),
-                transform: Transform::from_translation([0.0, 0.0, 50.0].into()),
                 ..Default::default()
             },
             kind,

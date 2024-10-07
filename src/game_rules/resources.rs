@@ -7,6 +7,9 @@ use crate::{GRID_HEIGHT, GRID_WIDTH};
 
 use super::components::{FilledCell, GridPos, PieceKind, Spin};
 
+/// Soft drop's default behavior is to speedup time
+pub(crate) const SOFT_DROP_SPEEDUP: u32 = 5;
+
 // GridState
 
 #[derive(Resource, Default)]
