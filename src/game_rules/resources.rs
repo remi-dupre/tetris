@@ -8,8 +8,11 @@ use crate::{GRID_HEIGHT, GRID_WIDTH};
 
 use super::components::{FilledCell, GridPos, PieceKind, Spin};
 
-/// Soft drop's default behavior is to speedup time
-pub(crate) const SOFT_DROP_SPEEDUP: u32 = 5;
+/// Soft drop's default behavior is to speedup time by a constant factor
+pub(crate) const SOFT_DROP_SPEEDUP: u32 = 3;
+
+/// Minimum time per tile when using soft drop
+pub(crate) const SOFT_DROP_MAX_DELAY: Duration = Duration::from_millis(50);
 
 // GridState
 
@@ -211,8 +214,8 @@ impl PieceGenerator {
         self.pending.pop().unwrap()
     }
 
-    pub fn _peek(&mut self) -> PieceKind {
+    pub fn peek(&mut self) -> PieceKind {
         self.ensure_pending_is_not_empty();
-        self.pending.pop().unwrap()
+        *self.pending.last().unwrap()
     }
 }

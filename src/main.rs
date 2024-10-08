@@ -14,7 +14,7 @@ use bevy::window::WindowResolution;
 
 const WINDOW_TITLE: &str = "Tetris (Bevy Engine)";
 const WINDOW_CLASS: &str = "org.remi-dupre.testing";
-const WINDOW_SIZE: [f32; 2] = [600., 800.];
+const WINDOW_SIZE: [f32; 2] = [580., 800.];
 
 const GRID_WIDTH: u8 = 10;
 const GRID_HEIGHT: u8 = 22;
@@ -36,11 +36,11 @@ fn main() {
             common::plugin::CommonPlugin,
             game_rules::plugin::GameRulesPlugin,
             ui_grid::plugin::UiGridPlugin {
-                pos: [-100.0, 0.0], // x: -300..100 ; y: -400..400
+                pos: [-95.0, 0.0], // x: -290..110 ; y: -400..400
                 size: [400.0, 800.0],
             },
             ui_side::plugin::UiSidePlugin {
-                pos: [200.0, 0.0], // x: 100..300 ; y: -400..400
+                pos: [195.0, 0.0], // x: 90..290 ; y: -400..400
                 size: [200.0, 800.0],
             },
         ))

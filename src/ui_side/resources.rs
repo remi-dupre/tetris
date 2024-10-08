@@ -73,6 +73,7 @@ impl FromWorld for FontsCollection {
 #[derive(Resource)]
 pub struct MeshCollection {
     pub background: Handle<Mesh>,
+    pub preview_box: Handle<Mesh>,
 }
 
 impl FromWorld for MeshCollection {
@@ -82,6 +83,11 @@ impl FromWorld for MeshCollection {
             UI_SIDE_VIRTUAL_HEIGHT,
         ));
 
-        Self { background }
+        let preview_box = world.add_asset(Rectangle::from_length(UI_SIDE_VIRTUAL_WIDTH));
+
+        Self {
+            background,
+            preview_box,
+        }
     }
 }

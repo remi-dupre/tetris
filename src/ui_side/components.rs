@@ -5,3 +5,6 @@ pub struct ScoreDisplay;
 
 #[derive(Component)]
 pub struct LevelDisplay;
+
+#[derive(Component)]
+pub struct NextPiece;

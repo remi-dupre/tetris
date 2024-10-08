@@ -46,7 +46,7 @@ impl FromWorld for UiGridRoot {
                 Name::new("Grid Panel"),
                 InheritedVisibility::default(),
                 Transform::default()
-                    .with_translation([config.pos[0], config.pos[1], 100.0].into())
+                    .with_translation([config.pos[0], config.pos[1], 0.0].into())
                     .with_scale(
                         [
                             config.size[0] / UI_GRID_VIRTUAL_WIDTH,

@@ -50,26 +50,30 @@ pub fn piece_fall(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
+    let Ok((entity, &kind, mut pos, &spin, mut fall)) = piece.get_single_mut() else {
+        return;
+    };
+
     let delta = {
         if keyboard.any_pressed([KeyCode::ArrowDown]) {
-            SOFT_DROP_SPEEDUP * time.delta()
+            let min_speedup = (fall.next_trigger.duration()).div_duration_f64(SOFT_DROP_MAX_DELAY);
+            time.delta()
+                .mul_f64(f64::from(SOFT_DROP_SPEEDUP).max(min_speedup))
         } else {
             time.delta()
         }
     };
 
-    for (entity, &kind, mut pos, &spin, mut fall) in &mut piece {
-        fall.next_trigger.tick(delta);
+    fall.next_trigger.tick(delta);
 
-        for _ in 0..fall.next_trigger.times_finished_this_tick() {
-            if !grid.try_move([0, -1], kind, pos.reborrow(), spin) {
-                for cell in kind.piece_covered_cells(*pos.reborrow(), spin) {
-                    grid.spawn_cell(&mut commands, &cell, kind);
-                }
-
-                commands.entity(entity).despawn_recursive();
-                break;
+    for _ in 0..fall.next_trigger.times_finished_this_tick() {
+        if !grid.try_move([0, -1], kind, pos.reborrow(), spin) {
+            for cell in kind.piece_covered_cells(*pos.reborrow(), spin) {
+                grid.spawn_cell(&mut commands, &cell, kind);
             }
+
+            commands.entity(entity).despawn_recursive();
+            break;
         }
     }
 }
@@ -118,7 +122,6 @@ pub fn piece_move(
 pub fn register_completed_lines(
     mut commands: Commands,
     mut grid: ResMut<GridState>,
-    mut score: ResMut<Score>,
     mut cleared_lines: EventWriter<ClearedLines>,
 ) {
     if !grid.is_changed() {
