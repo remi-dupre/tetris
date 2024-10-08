@@ -170,6 +170,23 @@ impl XP {
 #[derive(Resource, Default)]
 pub struct Score(pub u64);
 
+impl std::fmt::Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let log_1000 = self.0.checked_ilog10().unwrap_or(0) / 3;
+        write!(f, "{}", self.0 / 1000u64.pow(log_1000))?;
+
+        for exp in (0..log_1000).rev() {
+            write!(
+                f,
+                ",{:03}",
+                (self.0 % 1000u64.pow(exp + 1)) / 1000u64.pow(exp)
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
 // -- PieceGenerator
 
 #[derive(Resource, Default)]

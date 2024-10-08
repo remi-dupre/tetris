@@ -153,14 +153,6 @@ pub fn register_completed_lines(
 
     // TODO: Handle scoring through event
     cleared_lines.send(ClearedLines { lines_count });
-
-    match lines_count {
-        0 => {}
-        1 => score.0 += 40,
-        2 => score.0 += 100,
-        3 => score.0 += 300,
-        _ => score.0 += 1200,
-    }
 }
 
 // -- Score and Leveling
@@ -171,7 +163,15 @@ pub fn update_score(
     xp: Res<XP>,
 ) {
     for clear in cleared_lines.read() {
-        score.0 += u64::from(xp.level()) * u64::from(clear.lines_count);
+        let base_delta = match clear.lines_count {
+            0 => 0,
+            1 => 40,
+            2 => 100,
+            3 => 300,
+            _ => 1200,
+        };
+
+        score.0 += u64::from(xp.level()) * base_delta;
     }
 }
 

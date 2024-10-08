@@ -5,6 +5,9 @@ pub mod game_rules;
 pub mod ui_grid;
 pub mod ui_side;
 
+#[cfg(test)]
+pub mod tests;
+
 use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy::prelude::*;
 use bevy::window::WindowResolution;

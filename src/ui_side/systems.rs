@@ -129,7 +129,7 @@ pub fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, scor
     }
 
     for mut text in &mut text {
-        text.sections[0].value = score.0.to_string();
+        text.sections[0].value = score.to_string();
     }
 }
 
