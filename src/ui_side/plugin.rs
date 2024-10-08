@@ -21,6 +21,9 @@ impl Plugin for UiSidePlugin {
             .init_resource::<FontsCollection>()
             .init_resource::<MeshCollection>()
             .add_systems(Startup, (setup_background, setup_score_pannel))
-            .add_systems(Update, udpate_score_display.after(GameUpdateSystems));
+            .add_systems(
+                Update,
+                (udpate_score_display, udpate_level_display).after(GameUpdateSystems),
+            );
     }
 }

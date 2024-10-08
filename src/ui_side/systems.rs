@@ -3,6 +3,7 @@ use bevy::sprite::Anchor;
 
 use crate::common::resources::ColorPalette;
 use crate::game_rules::resources::Score;
+use crate::game_rules::resources::XP;
 
 use super::components::*;
 use super::resources::*;
@@ -102,6 +103,7 @@ pub fn setup_score_pannel(
     commands
         .spawn((
             Name::new("Level Display"),
+            LevelDisplay,
             Text2dBundle {
                 text: Text::from_section(
                     "1",
@@ -128,5 +130,15 @@ pub fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, scor
 
     for mut text in &mut text {
         text.sections[0].value = score.0.to_string();
+    }
+}
+
+pub fn udpate_level_display(mut text: Query<Mut<Text>, With<LevelDisplay>>, xp: Res<XP>) {
+    if !xp.is_changed() {
+        return;
+    }
+
+    for mut text in &mut text {
+        text.sections[0].value = xp.level().to_string();
     }
 }

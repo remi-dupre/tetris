@@ -2,15 +2,17 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::input::ButtonState;
 use bevy::prelude::*;
 
-use crate::{DROP_DELAY, GRID_VISIBLE_HEIGHT, GRID_WIDTH};
+use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
 use super::components::*;
+use super::events::*;
 use super::resources::*;
 
 pub fn piece_spawn(
     mut commands: Commands,
     mut piece_generator: ResMut<PieceGenerator>,
     pieces: Query<(), (With<PieceKind>, With<Fall>)>,
+    xp: Res<XP>,
 ) {
     if !pieces.is_empty() {
         return;
@@ -26,7 +28,7 @@ pub fn piece_spawn(
             .map(|[_, y]| y)
             .min()
             .unwrap_or(0),
-    ) - 1;
+    );
 
     commands.spawn((
         Name::new("Falling Piece"),
@@ -35,7 +37,7 @@ pub fn piece_spawn(
             kind,
             spin: Spin(0),
             fall: Fall {
-                next_trigger: Timer::new(DROP_DELAY, TimerMode::Repeating),
+                next_trigger: Timer::new(xp.time_per_row(), TimerMode::Repeating),
             },
         },
     ));
@@ -117,6 +119,7 @@ pub fn register_completed_lines(
     mut commands: Commands,
     mut grid: ResMut<GridState>,
     mut score: ResMut<Score>,
+    mut cleared_lines: EventWriter<ClearedLines>,
 ) {
     if !grid.is_changed() {
         return;
@@ -140,7 +143,7 @@ pub fn register_completed_lines(
         target_line += 1;
     }
 
-    let cleared_lines = GRID_VISIBLE_HEIGHT - target_line;
+    let lines_count = GRID_VISIBLE_HEIGHT - target_line;
 
     for y in target_line..GRID_VISIBLE_HEIGHT {
         for x in 0..GRID_WIDTH {
@@ -149,12 +152,31 @@ pub fn register_completed_lines(
     }
 
     // TODO: Handle scoring through event
+    cleared_lines.send(ClearedLines { lines_count });
 
-    match cleared_lines {
+    match lines_count {
         0 => {}
         1 => score.0 += 40,
         2 => score.0 += 100,
         3 => score.0 += 300,
         _ => score.0 += 1200,
+    }
+}
+
+// -- Score and Leveling
+
+pub fn update_score(
+    mut cleared_lines: EventReader<ClearedLines>,
+    mut score: ResMut<Score>,
+    xp: Res<XP>,
+) {
+    for clear in cleared_lines.read() {
+        score.0 += u64::from(xp.level()) * u64::from(clear.lines_count);
+    }
+}
+
+pub fn update_xp(mut cleared_lines: EventReader<ClearedLines>, mut xp: ResMut<XP>) {
+    for clear in cleared_lines.read() {
+        xp.0 += u32::from(clear.lines_count);
     }
 }

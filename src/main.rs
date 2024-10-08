@@ -5,8 +5,6 @@ pub mod game_rules;
 pub mod ui_grid;
 pub mod ui_side;
 
-use std::time::Duration;
-
 use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
@@ -18,8 +16,6 @@ const WINDOW_SIZE: [f32; 2] = [600., 800.];
 const GRID_WIDTH: u8 = 10;
 const GRID_HEIGHT: u8 = 22;
 const GRID_VISIBLE_HEIGHT: u8 = 20;
-
-const DROP_DELAY: Duration = Duration::from_millis(300);
 
 fn main() {
     App::new()

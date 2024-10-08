@@ -1,4 +1,5 @@
 use std::ops::DerefMut;
+use std::time::Duration;
 
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
@@ -146,8 +147,26 @@ impl GridState {
     }
 }
 
-// -- Score
+// -- XP
 
+#[derive(Resource, Default)]
+pub struct XP(pub(crate) u32);
+
+impl XP {
+    pub fn level(&self) -> u32 {
+        1 + self.0 / 10
+    }
+
+    /// See https://tetris.fandom.com/wiki/Tetris_Worlds#Gravity
+    pub fn time_per_row(&self) -> Duration {
+        Duration::from_secs_f64(
+            (0.8 - (f64::from(self.level() - 1) * 0.007))
+                .powi(i32::try_from(self.level() - 1).expect("Level Overflow")),
+        )
+    }
+}
+
+// -- Score
 #[derive(Resource, Default)]
 pub struct Score(pub u64);
 
