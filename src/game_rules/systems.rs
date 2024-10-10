@@ -121,17 +121,40 @@ pub fn piece_move(
 
 pub fn register_completed_lines(
     mut commands: Commands,
-    mut grid: ResMut<GridState>,
     mut cleared_lines: EventWriter<ClearedLines>,
+    mut rows_to_delete: ResMut<RowsToDelete>,
+    grid: ResMut<GridState>,
 ) {
     if !grid.is_changed() {
         return;
     }
 
-    let mut target_line = 0;
+    let mut lines_count = 0;
 
     for y in 0..GRID_VISIBLE_HEIGHT {
         if (0..GRID_WIDTH).all(|x| grid.is_filled(&GridPos { x, y })) {
+            rows_to_delete.0.push(y);
+            lines_count += 1;
+            continue;
+        }
+    }
+
+    if !rows_to_delete.0.is_empty() {
+        commands.init_resource::<PausedForRows>();
+
+        cleared_lines.send(ClearedLines { lines_count });
+    }
+}
+
+pub fn consume_queued_lines(
+    mut commands: Commands,
+    mut grid: ResMut<GridState>,
+    mut rows_to_delete: ResMut<RowsToDelete>,
+) {
+    let mut target_line = 0;
+
+    for y in 0..GRID_VISIBLE_HEIGHT {
+        if rows_to_delete.0.contains(&y) {
             continue;
         }
 
@@ -146,16 +169,13 @@ pub fn register_completed_lines(
         target_line += 1;
     }
 
-    let lines_count = GRID_VISIBLE_HEIGHT - target_line;
-
     for y in target_line..GRID_VISIBLE_HEIGHT {
         for x in 0..GRID_WIDTH {
             grid.despawn_cell(&mut commands, &GridPos { x, y });
         }
     }
 
-    // TODO: Handle scoring through event
-    cleared_lines.send(ClearedLines { lines_count });
+    rows_to_delete.0.clear();
 }
 
 // -- Score and Leveling

@@ -5,7 +5,7 @@ use bevy::sprite::MaterialMesh2dBundle;
 
 use crate::common::resources::ColorPalette;
 use crate::game_rules::components::{Fall, FilledCell, GridPos, PieceKind, Spin};
-use crate::game_rules::resources::GridState;
+use crate::game_rules::resources::{GridState, PausedForRows, RowsToDelete};
 
 use super::components::*;
 use super::resources::*;
@@ -74,11 +74,20 @@ pub fn attach_filled_cell_sprite(
     newly_filled_cells: Query<(Entity, &GridPos, &FilledCell), Added<FilledCell>>,
     animations: Res<AnimationCollection>,
 ) {
+    if newly_filled_cells.is_empty() {
+        return;
+    }
+
     let mut player = AnimationPlayer::default();
-    player.play(animations.block_inflate.node);
+    player.play(animations.inflate.node);
 
     let player_entity = commands
-        .spawn((player, animations.block_inflate.graph.clone()))
+        .spawn((
+            Name::new("Attached Cell Animation Player"),
+            OneShotPlayer,
+            player,
+            animations.inflate.graph.clone(),
+        ))
         .id();
 
     for (entity, pos, filled) in &newly_filled_cells {
@@ -93,11 +102,66 @@ pub fn attach_filled_cell_sprite(
                     ..Default::default()
                 },
                 AnimationTarget {
-                    id: animations.block_inflate.animation_target_id,
+                    id: animations.inflate.animation_target_id,
                     player: player_entity,
                 },
             ))
             .set_parent(**root); // TODO: should be a separate entity ?
+    }
+}
+
+// -- Run animation on cleared lines
+
+pub fn start_clear_line_animation(
+    mut commands: Commands,
+    animations: Res<AnimationCollection>,
+    rows_to_delete: Res<RowsToDelete>,
+    cells: Query<(Entity, &GridPos), With<FilledCell>>,
+) {
+    if rows_to_delete.0.is_empty() {
+        return;
+    }
+
+    let mut player = AnimationPlayer::default();
+    player.play(animations.blink.node);
+
+    let player_entity = commands
+        .spawn((
+            Name::new("Blink Completed Lines Player"),
+            OneShotPlayer,
+            player,
+            animations.blink.graph.clone(),
+        ))
+        .id();
+
+    for (entity, _) in cells
+        .iter()
+        .filter(|(_, pos)| rows_to_delete.0.contains(&pos.y))
+    {
+        commands.entity(entity).insert(AnimationTarget {
+            id: animations.blink.animation_target_id,
+            player: player_entity,
+        });
+    }
+}
+
+pub fn resume_game_when_animations_complete(
+    mut commands: Commands,
+    players: Query<&AnimationPlayer>,
+) {
+    if players.iter().all(|player| player.all_finished()) {
+        commands.remove_resource::<PausedForRows>();
+    }
+}
+
+pub fn cleanup_finished_oneshot_players(
+    mut commands: Commands,
+    players: Query<(Entity, &AnimationPlayer), With<OneShotPlayer>>,
+) {
+    for (entity, player) in &players {
+        if player.all_finished() {
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub struct ClearedLines {
     pub(crate) lines_count: u8,
 }

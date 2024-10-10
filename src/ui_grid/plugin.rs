@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::game_rules::plugin::GameUpdateSystems;
+use crate::game_rules::resources::PausedForRows;
 
 use super::resources::*;
 use super::systems::*;
@@ -38,6 +39,12 @@ impl Plugin for UiGridPlugin {
                         // Generic transforms
                         apply_sprite_pos,
                         apply_sprite_angle,
+                        // Clear line animation
+                        start_clear_line_animation.run_if(resource_added::<PausedForRows>),
+                        resume_game_when_animations_complete
+                            .run_if(resource_exists::<PausedForRows>),
+                        // Cleanup
+                        cleanup_finished_oneshot_players,
                     )
                         .chain()
                         .after(GameUpdateSystems),

@@ -14,7 +14,20 @@ pub(crate) const SOFT_DROP_SPEEDUP: u32 = 3;
 /// Minimum time per tile when using soft drop
 pub(crate) const SOFT_DROP_MAX_DELAY: Duration = Duration::from_millis(50);
 
-// GridState
+// -- PausedForRows
+
+/// Allows to pause the game progress for a while, this must be removed from
+/// another plugin to restart.
+#[derive(Resource, Default)]
+pub struct PausedForRows;
+
+// -- RowsToDelete
+
+/// Keep track of rows that have been defered to be deleted
+#[derive(Resource, Default)]
+pub struct RowsToDelete(pub Vec<u8>);
+
+// -- GridState
 
 #[derive(Resource, Default)]
 pub struct GridState {

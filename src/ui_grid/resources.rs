@@ -210,7 +210,7 @@ pub struct AnimationMeta {
 }
 
 impl AnimationMeta {
-    fn animation_block_inflate(world: &mut World) -> Self {
+    fn animation_inflate(world: &mut World) -> Self {
         let ratio = BLOCK_SQUARE_SMALL_RATIO / BLOCK_SQUARE_RATIO;
         let animation_target_id = AnimationTargetId::from_name(&Name::new("block-inflate"));
         let mut animation = AnimationClip::default();
@@ -218,7 +218,7 @@ impl AnimationMeta {
         animation.add_curve_to_target(
             animation_target_id,
             VariableCurve {
-                keyframe_timestamps: vec![0.0, 0.025, 0.1],
+                keyframe_timestamps: vec![0.0, 0.05, 0.2],
                 keyframes: Keyframes::Scale(vec![
                     Vec3::new(ratio, ratio, 1.0),
                     Vec3::new(1.0 / BLOCK_SQUARE_RATIO, 1.0 / BLOCK_SQUARE_RATIO, 1.0),
@@ -236,17 +236,47 @@ impl AnimationMeta {
             node,
         }
     }
+
+    fn animation_blink(world: &mut World) -> Self {
+        let animation_target_id = AnimationTargetId::from_name(&Name::new("blink"));
+        let mut animation = AnimationClip::default();
+
+        animation.add_curve_to_target(
+            animation_target_id,
+            VariableCurve {
+                keyframe_timestamps: vec![0.0, 0.05, 0.1, 0.15, 0.2],
+                keyframes: Keyframes::Scale(vec![
+                    Vec3::new(0.0, 0.0, 1.0),
+                    Vec3::new(1.0, 1.0, 1.0),
+                    Vec3::new(0.0, 0.0, 1.0),
+                    Vec3::new(1.0, 1.0, 1.0),
+                    Vec3::new(0.0, 0.0, 1.0),
+                ]),
+                interpolation: Interpolation::Step,
+            },
+        );
+
+        let (graph, node) = AnimationGraph::from_clip(world.add_asset(animation));
+
+        Self {
+            animation_target_id,
+            graph: world.add_asset(graph),
+            node,
+        }
+    }
 }
 
 #[derive(Resource)]
 pub struct AnimationCollection {
-    pub block_inflate: AnimationMeta,
+    pub inflate: AnimationMeta,
+    pub blink: AnimationMeta,
 }
 
 impl FromWorld for AnimationCollection {
     fn from_world(world: &mut World) -> Self {
         Self {
-            block_inflate: AnimationMeta::animation_block_inflate(world),
+            inflate: AnimationMeta::animation_inflate(world),
+            blink: AnimationMeta::animation_blink(world),
         }
     }
 }
