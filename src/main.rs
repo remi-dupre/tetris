@@ -8,6 +8,9 @@ pub mod ui_side;
 #[cfg(test)]
 pub mod tests;
 
+use bevy::diagnostic::{
+    EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,
+};
 use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
@@ -22,6 +25,11 @@ const GRID_VISIBLE_HEIGHT: u8 = 20;
 
 fn main() {
     App::new()
+        .add_plugins((
+            EntityCountDiagnosticsPlugin,
+            FrameTimeDiagnosticsPlugin,
+            LogDiagnosticsPlugin::default(),
+        ))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: WINDOW_TITLE.to_string(),

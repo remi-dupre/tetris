@@ -19,6 +19,7 @@ impl Plugin for UiGridPlugin {
 
         app.init_resource::<MaterialCollection>()
             .init_resource::<MeshCollection>()
+            .init_resource::<AnimationCollection>()
             .init_resource::<UiGridRoot>()
             .add_systems(Startup, (setup_camera, draw_background, draw_frame).chain())
             .add_systems(

@@ -1,3 +1,4 @@
+use bevy::animation::AnimationTarget;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
@@ -71,18 +72,32 @@ pub fn attach_filled_cell_sprite(
     materials: Res<MaterialCollection>,
     meshes: Res<MeshCollection>,
     newly_filled_cells: Query<(Entity, &GridPos, &FilledCell), Added<FilledCell>>,
+    animations: Res<AnimationCollection>,
 ) {
+    let mut player = AnimationPlayer::default();
+    player.play(animations.block_inflate.node);
+
+    let player_entity = commands
+        .spawn((player, animations.block_inflate.graph.clone()))
+        .id();
+
     for (entity, pos, filled) in &newly_filled_cells {
         commands
             .entity(entity)
-            .insert((MaterialMesh2dBundle {
-                mesh: meshes.square.clone().into(),
-                transform: Transform::default()
-                    .with_translation(tile_translation(pos.x, pos.y, 0.0)),
-                material: materials.pieces[filled.color_from_kind].clone(),
-                ..Default::default()
-            },))
-            .set_parent(**root); // TODO: should be a separate entity
+            .insert((
+                MaterialMesh2dBundle {
+                    mesh: meshes.square.clone().into(),
+                    transform: Transform::default()
+                        .with_translation(tile_translation(pos.x, pos.y, 0.0)),
+                    material: materials.pieces[filled.color_from_kind].clone(),
+                    ..Default::default()
+                },
+                AnimationTarget {
+                    id: animations.block_inflate.animation_target_id,
+                    player: player_entity,
+                },
+            ))
+            .set_parent(**root); // TODO: should be a separate entity ?
     }
 }
 

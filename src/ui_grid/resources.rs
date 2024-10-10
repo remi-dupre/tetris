@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use bevy::animation::AnimationTargetId;
 use bevy::prelude::*;
 use enum_map::EnumMap;
 
@@ -166,6 +167,8 @@ impl FromWorld for MeshCollection {
     }
 }
 
+// MaterialCollection
+
 #[derive(Resource)]
 pub struct MaterialCollection {
     pub pieces: EnumMap<PieceKind, Handle<ColorMaterial>>,
@@ -192,5 +195,58 @@ impl FromWorld for MaterialCollection {
 
         let pieces = EnumMap::from_fn(|kind| world.add_asset(base_color(kind)));
         Self { pieces, ghosts }
+    }
+}
+
+// AnimationCollection
+
+pub struct AnimationMeta {
+    /// The target of this animation
+    pub animation_target_id: AnimationTargetId,
+    /// The graph holding the animation
+    pub graph: Handle<AnimationGraph>,
+    /// The node that must be played
+    pub node: AnimationNodeIndex,
+}
+
+impl AnimationMeta {
+    fn animation_block_inflate(world: &mut World) -> Self {
+        let ratio = BLOCK_SQUARE_SMALL_RATIO / BLOCK_SQUARE_RATIO;
+        let animation_target_id = AnimationTargetId::from_name(&Name::new("block-inflate"));
+        let mut animation = AnimationClip::default();
+
+        animation.add_curve_to_target(
+            animation_target_id,
+            VariableCurve {
+                keyframe_timestamps: vec![0.0, 0.025, 0.1],
+                keyframes: Keyframes::Scale(vec![
+                    Vec3::new(ratio, ratio, 1.0),
+                    Vec3::new(1.0 / BLOCK_SQUARE_RATIO, 1.0 / BLOCK_SQUARE_RATIO, 1.0),
+                    Vec3::new(1.0, 1.0, 1.0),
+                ]),
+                interpolation: Interpolation::Linear,
+            },
+        );
+
+        let (graph, node) = AnimationGraph::from_clip(world.add_asset(animation));
+
+        Self {
+            animation_target_id,
+            graph: world.add_asset(graph),
+            node,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct AnimationCollection {
+    pub block_inflate: AnimationMeta,
+}
+
+impl FromWorld for AnimationCollection {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            block_inflate: AnimationMeta::animation_block_inflate(world),
+        }
     }
 }

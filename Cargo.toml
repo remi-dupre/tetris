@@ -11,6 +11,7 @@ rand = "0.8"
 version = "0.14"
 default-features = false
 features = [
+    "bevy_animation",
     "bevy_color",
     "bevy_dev_tools",
     "bevy_sprite",
