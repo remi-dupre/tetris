@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct ScoreDisplay;
+pub(crate) struct ScoreDisplay;
 
 #[derive(Component)]
-pub struct LevelDisplay;
+pub(crate) struct LevelDisplay;
 
 #[derive(Component)]
-pub struct NextPiece;
+pub(crate) struct NextPiece;

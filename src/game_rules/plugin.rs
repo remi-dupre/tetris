@@ -6,14 +6,13 @@ use super::resources::*;
 use super::systems::*;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GameUpdateSystems;
+pub(crate) struct GameUpdateSystems;
 
-pub struct GameRulesPlugin;
+pub(crate) struct GameRulesPlugin;
 
 impl Plugin for GameRulesPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<RowsToDelete>()
-            .init_resource::<PieceGenerator>()
+        app.init_resource::<PieceGenerator>()
             .init_resource::<Score>()
             .init_resource::<GridState>()
             .init_resource::<XP>()
@@ -21,9 +20,11 @@ impl Plugin for GameRulesPlugin {
             .add_systems(
                 Update,
                 (
-                    bevy::input::keyboard::keyboard_input_system,
                     (
-                        consume_queued_lines,
+                        bevy::input::keyboard::keyboard_input_system,
+                        resume_after_clear.run_if(resource_exists::<PausedForClear>),
+                    ),
+                    (
                         piece_spawn,
                         piece_move.after(keyboard_input_system),
                         piece_lock,
@@ -33,9 +34,10 @@ impl Plugin for GameRulesPlugin {
                         update_xp,
                     )
                         .chain()
-                        .run_if(not(resource_exists::<PausedForRows>))
+                        .run_if(not(resource_exists::<PausedForClear>))
                         .in_set(GameUpdateSystems),
-                ),
+                )
+                    .chain(),
             );
     }
 }

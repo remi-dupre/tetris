@@ -13,7 +13,7 @@ use super::components::*;
 use super::resources::*;
 use super::UI_SIDE_VIRTUAL_WIDTH;
 
-pub fn setup_background(
+pub(crate) fn setup_background(
     mut commands: Commands,
     meshes: Res<MeshCollection>,
     palette: Res<ColorPalette>,
@@ -32,7 +32,7 @@ pub fn setup_background(
         .set_parent(**root);
 }
 
-pub fn setup_preview(
+pub(crate) fn setup_preview(
     mut commands: Commands,
     meshes: Res<MeshCollection>,
     palette: Res<ColorPalette>,
@@ -64,7 +64,7 @@ pub fn setup_preview(
         .set_parent(preview);
 }
 
-pub fn setup_score_pannel(
+pub(crate) fn setup_score_pannel(
     mut commands: Commands,
     root: Res<UiSideRoot>,
     fonts: Res<FontsCollection>,
@@ -202,7 +202,7 @@ pub fn setup_score_pannel(
         .set_parent(**root);
 }
 
-pub fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, score: Res<Score>) {
+pub(crate) fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, score: Res<Score>) {
     if !score.is_changed() {
         return;
     }
@@ -212,7 +212,7 @@ pub fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, scor
     }
 }
 
-pub fn udpate_level_display(mut text: Query<Mut<Text>, With<LevelDisplay>>, xp: Res<XP>) {
+pub(crate) fn udpate_level_display(mut text: Query<Mut<Text>, With<LevelDisplay>>, xp: Res<XP>) {
     if !xp.is_changed() {
         return;
     }
@@ -223,7 +223,7 @@ pub fn udpate_level_display(mut text: Query<Mut<Text>, With<LevelDisplay>>, xp: 
 }
 
 #[allow(clippy::type_complexity)]
-pub fn update_next_piece(
+pub(crate) fn update_next_piece(
     mut rng: ResMut<PieceGenerator>,
     mut previews: Query<(Mut<Mesh2dHandle>, Mut<Handle<ColorMaterial>>), With<NextPiece>>,
     grid_meshes: Res<GridMeshCollection>,

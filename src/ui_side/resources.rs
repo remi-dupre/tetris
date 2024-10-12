@@ -7,15 +7,15 @@ use super::{UI_SIDE_VIRTUAL_HEIGHT, UI_SIDE_VIRTUAL_WIDTH};
 // -- Config
 
 #[derive(Resource)]
-pub struct UiSideConfig {
-    pub pos: [f32; 2],
-    pub size: [f32; 2],
+pub(crate) struct UiSideConfig {
+    pub(crate) pos: [f32; 2],
+    pub(crate) size: [f32; 2],
 }
 
 // -- Root
 
 #[derive(Resource)]
-pub struct UiSideRoot(Entity);
+pub(crate) struct UiSideRoot(Entity);
 
 impl Deref for UiSideRoot {
     type Target = Entity;
@@ -54,9 +54,9 @@ impl FromWorld for UiSideRoot {
 // -- FontsCollection
 
 #[derive(Resource)]
-pub struct FontsCollection {
-    pub default: Handle<Font>,
-    pub title: Handle<Font>,
+pub(crate) struct FontsCollection {
+    pub(crate) default: Handle<Font>,
+    pub(crate) title: Handle<Font>,
 }
 
 impl FromWorld for FontsCollection {
@@ -71,9 +71,9 @@ impl FromWorld for FontsCollection {
 // -- MeshCollection
 
 #[derive(Resource)]
-pub struct MeshCollection {
-    pub background: Handle<Mesh>,
-    pub preview_box: Handle<Mesh>,
+pub(crate) struct MeshCollection {
+    pub(crate) background: Handle<Mesh>,
+    pub(crate) preview_box: Handle<Mesh>,
 }
 
 impl FromWorld for MeshCollection {

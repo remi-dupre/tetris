@@ -3,12 +3,12 @@ use bevy::prelude::*;
 // -- Spin
 
 #[derive(Component, Clone, Copy, Default)]
-pub struct Spin(pub u8);
+pub(crate) struct Spin(pub(crate) u8);
 
 // -- PieceKind
 
 #[derive(Component, Clone, Copy, Eq, PartialEq, Hash, Debug, enum_map::Enum)]
-pub enum PieceKind {
+pub(crate) enum PieceKind {
     I,
     O,
     T,
@@ -19,7 +19,7 @@ pub enum PieceKind {
 }
 
 impl PieceKind {
-    pub const fn all() -> [Self; 7] {
+    pub(crate) const fn all() -> [Self; 7] {
         [
             Self::I,
             Self::O,
@@ -31,7 +31,7 @@ impl PieceKind {
         ]
     }
 
-    pub const fn base_shape(self) -> [[i8; 2]; 4] {
+    pub(crate) const fn base_shape(self) -> [[i8; 2]; 4] {
         match self {
             PieceKind::I => [[-2, 0], [-1, 0], [0, 0], [1, 0]],
             PieceKind::O => [[-1, -1], [0, -1], [-1, 0], [0, 0]],
@@ -45,7 +45,7 @@ impl PieceKind {
 
     /// Wall kick directions when increasing angle.
     /// See https://tetris.fandom.com/wiki/SRS
-    pub const fn wall_kick_incr_dirs(self) -> [[[i8; 2]; 4]; 4] {
+    pub(crate) const fn wall_kick_incr_dirs(self) -> [[[i8; 2]; 4]; 4] {
         match self {
             Self::I => [
                 [[-2, 0], [1, 0], [-2, -1], [1, 2]],
@@ -81,7 +81,7 @@ impl PieceKind {
         cells
     }
 
-    pub const fn base_width(self) -> u8 {
+    pub(crate) const fn base_width(self) -> u8 {
         match self {
             PieceKind::I => 4,
             PieceKind::O => 2,
@@ -89,7 +89,7 @@ impl PieceKind {
         }
     }
 
-    pub fn piece_covered_cells(self, pos: GridPos, spin: Spin) -> impl Iterator<Item = GridPos> {
+    pub(crate) fn piece_covered_cells(self, pos: GridPos, spin: Spin) -> impl Iterator<Item = GridPos> {
         self.rotation(spin).into_iter().map(move |[x, y]| GridPos {
             x: pos.x.wrapping_add_signed(x),
             y: pos.y.wrapping_add_signed(y),
@@ -98,9 +98,9 @@ impl PieceKind {
 }
 
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct GridPos {
-    pub x: u8,
-    pub y: u8,
+pub(crate) struct GridPos {
+    pub(crate) x: u8,
+    pub(crate) y: u8,
 }
 
 impl std::fmt::Display for GridPos {
@@ -110,20 +110,20 @@ impl std::fmt::Display for GridPos {
 }
 
 #[derive(Component)]
-pub struct FilledCell {
-    pub color_from_kind: PieceKind,
+pub(crate) struct FilledCell {
+    pub(crate) color_from_kind: PieceKind,
 }
 
 #[derive(Component, Clone)]
-pub struct Fall {
-    pub down_timer: Timer,
-    pub lock_timer: Timer,
+pub(crate) struct Fall {
+    pub(crate) down_timer: Timer,
+    pub(crate) lock_timer: Timer,
 }
 
 #[derive(Bundle, Clone)]
-pub struct FallingPieceBundle {
-    pub kind: PieceKind,
-    pub pos: GridPos,
-    pub spin: Spin,
-    pub fall: Fall,
+pub(crate) struct FallingPieceBundle {
+    pub(crate) kind: PieceKind,
+    pub(crate) pos: GridPos,
+    pub(crate) spin: Spin,
+    pub(crate) fall: Fall,
 }

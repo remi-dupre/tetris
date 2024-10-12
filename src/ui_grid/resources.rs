@@ -21,14 +21,14 @@ pub(crate) const BLOCK_SQUARE_SMALL_RATIO: f32 = 0.75;
 // Config
 
 #[derive(Resource)]
-pub struct UiGridConfig {
-    pub pos: [f32; 2],
-    pub size: [f32; 2],
+pub(crate) struct UiGridConfig {
+    pub(crate) pos: [f32; 2],
+    pub(crate) size: [f32; 2],
 }
 
 // -- Root
 #[derive(Resource)]
-pub struct UiGridRoot(Entity);
+pub(crate) struct UiGridRoot(Entity);
 
 impl Deref for UiGridRoot {
     type Target = Entity;
@@ -67,12 +67,11 @@ impl FromWorld for UiGridRoot {
 // MeshCollection
 
 #[derive(Resource)]
-pub struct MeshCollection {
-    pub square: Handle<Mesh>,
-    pub frame: Handle<Mesh>,
-    pub grid: Handle<Mesh>,
-    pub pieces: EnumMap<PieceKind, Handle<Mesh>>,
-    pub pieces_small_blocks: EnumMap<PieceKind, Handle<Mesh>>,
+pub(crate) struct MeshCollection {
+    pub(crate) square: Handle<Mesh>,
+    pub(crate) frame: Handle<Mesh>,
+    pub(crate) grid: Handle<Mesh>,
+    pub(crate) pieces_small_blocks: EnumMap<PieceKind, Handle<Mesh>>,
 }
 
 impl FromWorld for MeshCollection {
@@ -141,14 +140,6 @@ impl FromWorld for MeshCollection {
             )),
         );
 
-        let pieces = EnumMap::from_fn(|piece_kind: PieceKind| {
-            world.add_asset(mesh_piece(
-                piece_kind.base_shape().into_iter(),
-                BLOCK_SQUARE_RATIO,
-                piece_kind.base_width() % 2 == 0,
-            ))
-        });
-
         let pieces_small_blocks = EnumMap::from_fn(|piece_kind: PieceKind| {
             world.add_asset(mesh_piece(
                 piece_kind.base_shape().into_iter(),
@@ -162,7 +153,6 @@ impl FromWorld for MeshCollection {
             frame,
             grid,
             pieces_small_blocks,
-            pieces,
         }
     }
 }
@@ -170,9 +160,9 @@ impl FromWorld for MeshCollection {
 // MaterialCollection
 
 #[derive(Resource)]
-pub struct MaterialCollection {
-    pub pieces: EnumMap<PieceKind, Handle<ColorMaterial>>,
-    pub ghosts: EnumMap<PieceKind, Handle<ColorMaterial>>,
+pub(crate) struct MaterialCollection {
+    pub(crate) pieces: EnumMap<PieceKind, Handle<ColorMaterial>>,
+    pub(crate) ghosts: EnumMap<PieceKind, Handle<ColorMaterial>>,
 }
 
 impl FromWorld for MaterialCollection {
@@ -200,13 +190,13 @@ impl FromWorld for MaterialCollection {
 
 // AnimationCollection
 
-pub struct AnimationMeta {
+pub(crate) struct AnimationMeta {
     /// The target of this animation
-    pub animation_target_id: AnimationTargetId,
+    pub(crate) animation_target_id: AnimationTargetId,
     /// The graph holding the animation
-    pub graph: Handle<AnimationGraph>,
+    pub(crate) graph: Handle<AnimationGraph>,
     /// The node that must be played
-    pub node: AnimationNodeIndex,
+    pub(crate) node: AnimationNodeIndex,
 }
 
 impl AnimationMeta {
@@ -238,20 +228,16 @@ impl AnimationMeta {
     }
 
     fn animation_blink(world: &mut World) -> Self {
+        let hide = Vec3::new(0.0, 0.0, 1.0);
+        let show = Vec3::new(1.0, 1.0, 1.0);
         let animation_target_id = AnimationTargetId::from_name(&Name::new("blink"));
         let mut animation = AnimationClip::default();
 
         animation.add_curve_to_target(
             animation_target_id,
             VariableCurve {
-                keyframe_timestamps: vec![0.0, 0.05, 0.1, 0.15, 0.2],
-                keyframes: Keyframes::Scale(vec![
-                    Vec3::new(0.0, 0.0, 1.0),
-                    Vec3::new(1.0, 1.0, 1.0),
-                    Vec3::new(0.0, 0.0, 1.0),
-                    Vec3::new(1.0, 1.0, 1.0),
-                    Vec3::new(0.0, 0.0, 1.0),
-                ]),
+                keyframe_timestamps: vec![0.0, 0.3, 0.6, 0.8],
+                keyframes: Keyframes::Scale(vec![hide, show, hide, show]),
                 interpolation: Interpolation::Step,
             },
         );
@@ -267,9 +253,10 @@ impl AnimationMeta {
 }
 
 #[derive(Resource)]
-pub struct AnimationCollection {
-    pub inflate: AnimationMeta,
-    pub blink: AnimationMeta,
+pub(crate) struct AnimationCollection {
+    pub(crate) inflate: AnimationMeta,
+    // Blink lines before clearing them. Base animation is 1s long and must be scaled.
+    pub(crate) blink: AnimationMeta,
 }
 
 impl FromWorld for AnimationCollection {

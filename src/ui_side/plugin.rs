@@ -5,9 +5,9 @@ use crate::game_rules::plugin::GameUpdateSystems;
 use super::resources::*;
 use super::systems::*;
 
-pub struct UiSidePlugin {
-    pub pos: [f32; 2],
-    pub size: [f32; 2],
+pub(crate) struct UiSidePlugin {
+    pub(crate) pos: [f32; 2],
+    pub(crate) size: [f32; 2],
 }
 
 impl Plugin for UiSidePlugin {

@@ -1,18 +1,15 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct BackgroundTile;
+pub(crate) struct PieceTile;
 
 #[derive(Component)]
-pub struct PieceTile;
-
-#[derive(Component)]
-pub struct PieceGhost(pub Entity);
+pub(crate) struct PieceGhost(pub(crate) Entity);
 
 /// Animation that is despawned once it finised playing.
 #[derive(Component)]
-pub struct OneShotPlayer;
+pub(crate) struct OneShotPlayer;
 
 /// Marker that indicate when a sprite is aligned from the center of cells.
 #[derive(Component)]
-pub struct AlignedOnCellCenter;
+pub(crate) struct AlignedOnCellCenter;

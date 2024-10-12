@@ -8,7 +8,7 @@ use super::components::*;
 use super::events::*;
 use super::resources::*;
 
-pub fn piece_spawn(
+pub(crate) fn piece_spawn(
     mut commands: Commands,
     mut piece_generator: ResMut<PieceGenerator>,
     pieces: Query<(), (With<PieceKind>, With<Fall>)>,
@@ -44,7 +44,7 @@ pub fn piece_spawn(
     ));
 }
 
-pub fn piece_lock(
+pub(crate) fn piece_lock(
     mut grid: ResMut<GridState>,
     mut commands: Commands,
     mut piece: Query<(Entity, &PieceKind, &GridPos, &Spin, &mut Fall)>,
@@ -71,7 +71,7 @@ pub fn piece_lock(
     }
 }
 
-pub fn piece_fall(
+pub(crate) fn piece_fall(
     grid: Res<GridState>,
     mut piece: Query<(&PieceKind, &mut GridPos, &Spin, &mut Fall)>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -98,7 +98,7 @@ pub fn piece_fall(
     }
 }
 
-pub fn piece_move(
+pub(crate) fn piece_move(
     mut keyboard_input_events: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut grid: ResMut<GridState>,
@@ -139,42 +139,52 @@ pub fn piece_move(
     }
 }
 
-pub fn register_completed_lines(
+pub(crate) fn register_completed_lines(
     mut commands: Commands,
     mut cleared_lines: EventWriter<ClearedLines>,
-    mut rows_to_delete: ResMut<RowsToDelete>,
     grid: ResMut<GridState>,
 ) {
     if !grid.is_changed() {
         return;
     }
 
-    let mut lines_count = 0;
+    let mut rows_to_delete = Vec::new();
 
     for y in 0..GRID_VISIBLE_HEIGHT {
         if (0..GRID_WIDTH).all(|x| grid.is_filled(&GridPos { x, y })) {
-            rows_to_delete.0.push(y);
-            lines_count += 1;
+            rows_to_delete.push(y);
             continue;
         }
     }
 
-    if !rows_to_delete.0.is_empty() {
-        commands.init_resource::<PausedForRows>();
+    if !rows_to_delete.is_empty() {
+        cleared_lines.send(ClearedLines {
+            lines_count: u8::try_from(rows_to_delete.len()).unwrap(),
+        });
 
-        cleared_lines.send(ClearedLines { lines_count });
+        commands.insert_resource(PausedForClear {
+            timer: Timer::new(CLEAR_DELAY, TimerMode::Once),
+            rows_to_delete,
+        });
     }
 }
 
-pub fn consume_queued_lines(
+pub(crate) fn resume_after_clear(
     mut commands: Commands,
+    mut pause: ResMut<PausedForClear>,
     mut grid: ResMut<GridState>,
-    mut rows_to_delete: ResMut<RowsToDelete>,
+    time: Res<Time>,
 ) {
+    pause.timer.tick(time.delta());
+
+    if !pause.timer.finished() {
+        return;
+    }
+
     let mut target_line = 0;
 
     for y in 0..GRID_VISIBLE_HEIGHT {
-        if rows_to_delete.0.contains(&y) {
+        if pause.rows_to_delete.contains(&y) {
             continue;
         }
 
@@ -195,12 +205,12 @@ pub fn consume_queued_lines(
         }
     }
 
-    rows_to_delete.0.clear();
+    commands.remove_resource::<PausedForClear>()
 }
 
 // -- Score and Leveling
 
-pub fn update_score(
+pub(crate) fn update_score(
     mut cleared_lines: EventReader<ClearedLines>,
     mut score: ResMut<Score>,
     xp: Res<XP>,
@@ -218,7 +228,7 @@ pub fn update_score(
     }
 }
 
-pub fn update_xp(mut cleared_lines: EventReader<ClearedLines>, mut xp: ResMut<XP>) {
+pub(crate) fn update_xp(mut cleared_lines: EventReader<ClearedLines>, mut xp: ResMut<XP>) {
     for clear in cleared_lines.read() {
         xp.0 += u32::from(clear.lines_count);
     }

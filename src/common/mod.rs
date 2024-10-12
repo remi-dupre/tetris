@@ -1,2 +1,2 @@
-pub mod plugin;
-pub mod resources;
+pub(crate) mod plugin;
+pub(crate) mod resources;

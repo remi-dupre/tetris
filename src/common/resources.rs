@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 /// Pack a color with its corresponding material handle
 #[derive(Clone)]
-pub struct ResColor {
-    pub color: Color,
-    pub material: Handle<ColorMaterial>,
+pub(crate) struct ResColor {
+    pub(crate) color: Color,
+    pub(crate) material: Handle<ColorMaterial>,
 }
 
 impl ResColor {
@@ -31,11 +31,11 @@ impl From<&ResColor> for Handle<ColorMaterial> {
 }
 
 #[derive(Resource, Clone)]
-pub struct ColorPalette {
-    pub background_1: ResColor,
-    pub background_2: ResColor,
-    pub text_default: ResColor,
-    pub text_title: ResColor,
+pub(crate) struct ColorPalette {
+    pub(crate) background_1: ResColor,
+    pub(crate) background_2: ResColor,
+    pub(crate) text_default: ResColor,
+    pub(crate) text_title: ResColor,
 }
 
 impl FromWorld for ColorPalette {

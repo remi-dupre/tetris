@@ -18,38 +18,38 @@ pub(crate) const SOFT_DROP_MAX_DELAY: Duration = Duration::from_millis(50);
 /// See https://tetris.fandom.com/wiki/Lock_delay
 pub(crate) const LOCK_DELAY: Duration = Duration::from_millis(500);
 
+/// Duration for which the game pauses when lines are cleared.
+pub(crate) const CLEAR_DELAY: Duration = Duration::from_millis(400);
+
 // -- PausedForRows
 
 /// Allows to pause the game progress for a while, this must be removed from
 /// another plugin to restart.
-#[derive(Resource, Default)]
-pub struct PausedForRows;
-
-// -- RowsToDelete
-
-/// Keep track of rows that have been defered to be deleted
-#[derive(Resource, Default)]
-pub struct RowsToDelete(pub Vec<u8>);
+#[derive(Resource)]
+pub(crate) struct PausedForClear {
+    pub(crate) timer: Timer,
+    pub(crate) rows_to_delete: Vec<u8>,
+}
 
 // -- GridState
 
 #[derive(Resource, Default)]
-pub struct GridState {
+pub(crate) struct GridState {
     cells: [[Option<Entity>; GRID_HEIGHT as _]; GRID_WIDTH as _],
 }
 
 impl GridState {
-    pub fn is_empty(&self, pos: &GridPos) -> bool {
+    pub(crate) fn is_empty(&self, pos: &GridPos) -> bool {
         (0..GRID_WIDTH).contains(&pos.x)
             && (0..GRID_HEIGHT).contains(&pos.y)
             && !self.is_filled(pos)
     }
 
-    pub fn is_filled(&self, pos: &GridPos) -> bool {
+    pub(crate) fn is_filled(&self, pos: &GridPos) -> bool {
         self.get_filled_entity(pos).is_some()
     }
 
-    pub fn get_filled_entity(&self, pos: &GridPos) -> Option<&Entity> {
+    pub(crate) fn get_filled_entity(&self, pos: &GridPos) -> Option<&Entity> {
         self.cells
             .get(usize::from(pos.x))?
             .get(usize::from(pos.y))
@@ -57,7 +57,7 @@ impl GridState {
             .as_ref()
     }
 
-    pub fn spawn_cell(
+    pub(crate) fn spawn_cell(
         &mut self,
         commands: &mut Commands,
         pos: &GridPos,
@@ -76,7 +76,7 @@ impl GridState {
         self.cells[usize::from(pos.x)][usize::from(pos.y)] = Some(entity);
     }
 
-    pub fn despawn_cell(&mut self, commands: &mut Commands, pos: &GridPos) -> bool {
+    pub(crate) fn despawn_cell(&mut self, commands: &mut Commands, pos: &GridPos) -> bool {
         let Some(&entity) = self.get_filled_entity(pos) else {
             return false;
         };
@@ -86,7 +86,12 @@ impl GridState {
         true
     }
 
-    pub fn move_to(&mut self, commands: &mut Commands, from: &GridPos, to: &GridPos) -> bool {
+    pub(crate) fn move_to(
+        &mut self,
+        commands: &mut Commands,
+        from: &GridPos,
+        to: &GridPos,
+    ) -> bool {
         if from == to {
             return false;
         }
@@ -111,7 +116,7 @@ impl GridState {
             .all(|pos| self.is_empty(&pos))
     }
 
-    pub fn try_move(
+    pub(crate) fn try_move(
         &self,
         delta: [i8; 2],
         kind: PieceKind,
@@ -153,12 +158,22 @@ impl GridState {
         true
     }
 
-    pub fn try_rotate_right(&self, kind: PieceKind, pos: Mut<GridPos>, spin: Mut<Spin>) -> bool {
+    pub(crate) fn try_rotate_right(
+        &self,
+        kind: PieceKind,
+        pos: Mut<GridPos>,
+        spin: Mut<Spin>,
+    ) -> bool {
         let kick_directions = kind.wall_kick_incr_dirs()[usize::from(spin.0 % 4)];
         self.try_rotate(Spin(1), kind, pos, spin, kick_directions)
     }
 
-    pub fn try_rotate_left(&self, kind: PieceKind, pos: Mut<GridPos>, spin: Mut<Spin>) -> bool {
+    pub(crate) fn try_rotate_left(
+        &self,
+        kind: PieceKind,
+        pos: Mut<GridPos>,
+        spin: Mut<Spin>,
+    ) -> bool {
         let kick_directions = kind.wall_kick_incr_dirs()[usize::from((spin.0 + 3) % 4)]
             .into_iter()
             .map(|[x, y]| [-x, -y]);
@@ -170,15 +185,15 @@ impl GridState {
 // -- XP
 
 #[derive(Resource, Default)]
-pub struct XP(pub(crate) u32);
+pub(crate) struct XP(pub(crate) u32);
 
 impl XP {
-    pub fn level(&self) -> u32 {
+    pub(crate) fn level(&self) -> u32 {
         1 + self.0 / 10
     }
 
     /// See https://tetris.fandom.com/wiki/Tetris_Worlds#Gravity
-    pub fn time_per_row(&self) -> Duration {
+    pub(crate) fn time_per_row(&self) -> Duration {
         Duration::from_secs_f64(
             (0.8 - (f64::from(self.level() - 1) * 0.007))
                 .powi(i32::try_from(self.level() - 1).expect("Level Overflow")),
@@ -188,7 +203,7 @@ impl XP {
 
 // -- Score
 #[derive(Resource, Default)]
-pub struct Score(pub u64);
+pub(crate) struct Score(pub(crate) u64);
 
 impl std::fmt::Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -210,7 +225,7 @@ impl std::fmt::Display for Score {
 // -- PieceGenerator
 
 #[derive(Resource, Default)]
-pub struct PieceGenerator {
+pub(crate) struct PieceGenerator {
     pending: Vec<PieceKind>,
 }
 
@@ -226,12 +241,12 @@ impl PieceGenerator {
         self.pending.extend_from_slice(&pool);
     }
 
-    pub fn choose(&mut self) -> PieceKind {
+    pub(crate) fn choose(&mut self) -> PieceKind {
         self.ensure_pending_is_not_empty();
         self.pending.pop().unwrap()
     }
 
-    pub fn peek(&mut self) -> PieceKind {
+    pub(crate) fn peek(&mut self) -> PieceKind {
         self.ensure_pending_is_not_empty();
         *self.pending.last().unwrap()
     }

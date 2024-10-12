@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 
 use crate::game_rules::plugin::GameUpdateSystems;
-use crate::game_rules::resources::PausedForRows;
+use crate::game_rules::resources::PausedForClear;
 
 use super::resources::*;
 use super::systems::*;
 
-pub struct UiGridPlugin {
-    pub pos: [f32; 2],
-    pub size: [f32; 2],
+pub(crate) struct UiGridPlugin {
+    pub(crate) pos: [f32; 2],
+    pub(crate) size: [f32; 2],
 }
 
 impl Plugin for UiGridPlugin {
@@ -40,9 +40,7 @@ impl Plugin for UiGridPlugin {
                         apply_sprite_pos,
                         apply_sprite_angle,
                         // Clear line animation
-                        start_clear_line_animation.run_if(resource_added::<PausedForRows>),
-                        resume_game_when_animations_complete
-                            .run_if(resource_exists::<PausedForRows>),
+                        start_clear_line_animation.run_if(resource_added::<PausedForClear>),
                         // Cleanup
                         cleanup_finished_oneshot_players,
                     )

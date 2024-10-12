@@ -1,12 +1,12 @@
 //! Guidelines : https://harddrop.com/wiki/Tetris_Guideline
 
-pub mod common;
-pub mod game_rules;
-pub mod ui_grid;
-pub mod ui_side;
+pub(crate) mod common;
+pub(crate) mod game_rules;
+pub(crate) mod ui_grid;
+pub(crate) mod ui_side;
 
 #[cfg(test)]
-pub mod tests;
+pub(crate) mod tests;
 
 use bevy::diagnostic::{
     EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,

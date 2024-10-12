@@ -5,7 +5,7 @@ use bevy::sprite::MaterialMesh2dBundle;
 
 use crate::common::resources::ColorPalette;
 use crate::game_rules::components::{Fall, FilledCell, GridPos, PieceKind, Spin};
-use crate::game_rules::resources::{GridState, PausedForRows, RowsToDelete};
+use crate::game_rules::resources::{GridState, PausedForClear};
 
 use super::components::*;
 use super::resources::*;
@@ -13,7 +13,7 @@ use super::tile_translation;
 
 // -- Camera
 
-pub fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
+pub(crate) fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
     commands.spawn((
         Name::new("Main Camera"),
         Camera2dBundle {
@@ -28,7 +28,7 @@ pub fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
 
 // -- Static decoration
 
-pub fn draw_frame(
+pub(crate) fn draw_frame(
     mut commands: Commands,
     meshes: Res<MeshCollection>,
     palette: Res<ColorPalette>,
@@ -46,7 +46,7 @@ pub fn draw_frame(
         .set_parent(**root);
 }
 
-pub fn draw_background(
+pub(crate) fn draw_background(
     mut commands: Commands,
     meshes: Res<MeshCollection>,
     palette: Res<ColorPalette>,
@@ -66,7 +66,7 @@ pub fn draw_background(
 
 // -- Filled Cell's sprites
 
-pub fn attach_filled_cell_sprite(
+pub(crate) fn attach_filled_cell_sprite(
     mut commands: Commands,
     root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
@@ -112,18 +112,17 @@ pub fn attach_filled_cell_sprite(
 
 // -- Run animation on cleared lines
 
-pub fn start_clear_line_animation(
+pub(crate) fn start_clear_line_animation(
     mut commands: Commands,
     animations: Res<AnimationCollection>,
-    rows_to_delete: Res<RowsToDelete>,
     cells: Query<(Entity, &GridPos), With<FilledCell>>,
+    pause: Res<PausedForClear>,
 ) {
-    if rows_to_delete.0.is_empty() {
-        return;
-    }
-
     let mut player = AnimationPlayer::default();
-    player.play(animations.blink.node);
+
+    player
+        .play(animations.blink.node)
+        .set_speed(1.0 / pause.timer.duration().as_secs_f32());
 
     let player_entity = commands
         .spawn((
@@ -136,7 +135,7 @@ pub fn start_clear_line_animation(
 
     for (entity, _) in cells
         .iter()
-        .filter(|(_, pos)| rows_to_delete.0.contains(&pos.y))
+        .filter(|(_, pos)| pause.rows_to_delete.contains(&pos.y))
     {
         commands.entity(entity).insert(AnimationTarget {
             id: animations.blink.animation_target_id,
@@ -145,16 +144,7 @@ pub fn start_clear_line_animation(
     }
 }
 
-pub fn resume_game_when_animations_complete(
-    mut commands: Commands,
-    players: Query<&AnimationPlayer>,
-) {
-    if players.iter().all(|player| player.all_finished()) {
-        commands.remove_resource::<PausedForRows>();
-    }
-}
-
-pub fn cleanup_finished_oneshot_players(
+pub(crate) fn cleanup_finished_oneshot_players(
     mut commands: Commands,
     players: Query<(Entity, &AnimationPlayer), With<OneShotPlayer>>,
 ) {
@@ -167,7 +157,7 @@ pub fn cleanup_finished_oneshot_players(
 
 // -- Piece tile
 
-pub fn attach_piece_sprite(
+pub(crate) fn attach_piece_sprite(
     mut commands: Commands,
     root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
@@ -196,7 +186,7 @@ pub fn attach_piece_sprite(
 
 // -- Piece ghost's tile
 
-pub fn attach_piece_ghost(
+pub(crate) fn attach_piece_ghost(
     mut commands: Commands,
     root: Res<UiGridRoot>,
     materials: Res<MaterialCollection>,
@@ -225,7 +215,7 @@ pub fn attach_piece_ghost(
     }
 }
 
-pub fn remove_hanging_piece_ghost(
+pub(crate) fn remove_hanging_piece_ghost(
     mut commands: Commands,
     ghosts: Query<(Entity, &PieceGhost)>,
     entities: Query<Entity>,
@@ -238,7 +228,7 @@ pub fn remove_hanging_piece_ghost(
 }
 
 #[allow(clippy::type_complexity)]
-pub fn update_ghost_pos(
+pub(crate) fn update_ghost_pos(
     grid: Res<GridState>,
     pieces: Query<
         (&PieceKind, &GridPos, &Spin),
@@ -259,7 +249,7 @@ pub fn update_ghost_pos(
     }
 }
 
-pub fn update_ghost_spin(
+pub(crate) fn update_ghost_spin(
     pieces: Query<&Spin, (With<Fall>, Changed<Spin>)>,
     mut ghosts: Query<(&PieceGhost, &mut Spin), Without<Fall>>,
 ) {
@@ -275,7 +265,7 @@ pub fn update_ghost_spin(
 // -- Update transformations
 
 #[allow(clippy::type_complexity)]
-pub fn apply_sprite_pos(
+pub(crate) fn apply_sprite_pos(
     mut pieces: Query<
         (&GridPos, Has<AlignedOnCellCenter>, &mut Transform),
         Or<(Added<Transform>, Changed<GridPos>)>,
@@ -290,7 +280,7 @@ pub fn apply_sprite_pos(
     }
 }
 
-pub fn apply_sprite_angle(mut pieces: Query<(&Spin, &mut Transform), Changed<Spin>>) {
+pub(crate) fn apply_sprite_angle(mut pieces: Query<(&Spin, &mut Transform), Changed<Spin>>) {
     for (&Spin(spin), mut transform) in &mut pieces {
         transform.rotation = Quat::from_rotation_z(-f32::from(spin) * std::f32::consts::PI / 2.0);
     }
@@ -299,7 +289,7 @@ pub fn apply_sprite_angle(mut pieces: Query<(&Spin, &mut Transform), Changed<Spi
 // Window controls
 // TODO: they might deserve their own plugin
 
-pub fn button_pressed(
+pub(crate) fn button_pressed(
     mut keyboard_input_events: EventReader<KeyboardInput>,
     mut exit: EventWriter<AppExit>,
 ) {
