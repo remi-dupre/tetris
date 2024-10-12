@@ -37,26 +37,53 @@ pub fn piece_spawn(
             kind,
             spin: Spin(0),
             fall: Fall {
-                next_trigger: Timer::new(xp.time_per_row(), TimerMode::Repeating),
+                down_timer: Timer::new(xp.time_per_row(), TimerMode::Repeating),
+                lock_timer: Timer::new(LOCK_DELAY, TimerMode::Once),
             },
         },
     ));
 }
 
-pub fn piece_fall(
+pub fn piece_lock(
     mut grid: ResMut<GridState>,
     mut commands: Commands,
-    mut piece: Query<(Entity, &PieceKind, &mut GridPos, &Spin, &mut Fall)>,
+    mut piece: Query<(Entity, &PieceKind, &GridPos, &Spin, &mut Fall)>,
+    time: Res<Time>,
+) {
+    let Ok((entity, &kind, pos, &spin, mut fall)) = piece.get_single_mut() else {
+        return;
+    };
+
+    // Check if the piece is lying on the ground
+    if grid.try_move([0, -1], kind, &mut pos.clone(), spin) {
+        fall.lock_timer.reset();
+        return;
+    }
+
+    fall.lock_timer.tick(time.delta());
+
+    if fall.lock_timer.finished() {
+        for cell in kind.piece_covered_cells(*pos, spin) {
+            grid.spawn_cell(&mut commands, &cell, kind);
+        }
+
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn piece_fall(
+    grid: Res<GridState>,
+    mut piece: Query<(&PieceKind, &mut GridPos, &Spin, &mut Fall)>,
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let Ok((entity, &kind, mut pos, &spin, mut fall)) = piece.get_single_mut() else {
+    let Ok((&kind, mut pos, &spin, mut fall)) = piece.get_single_mut() else {
         return;
     };
 
     let delta = {
         if keyboard.any_pressed([KeyCode::ArrowDown]) {
-            let min_speedup = (fall.next_trigger.duration()).div_duration_f64(SOFT_DROP_MAX_DELAY);
+            let min_speedup = (fall.down_timer.duration()).div_duration_f64(SOFT_DROP_MAX_DELAY);
             time.delta()
                 .mul_f64(f64::from(SOFT_DROP_SPEEDUP).max(min_speedup))
         } else {
@@ -64,17 +91,10 @@ pub fn piece_fall(
         }
     };
 
-    fall.next_trigger.tick(delta);
+    fall.down_timer.tick(delta);
 
-    for _ in 0..fall.next_trigger.times_finished_this_tick() {
-        if !grid.try_move([0, -1], kind, pos.reborrow(), spin) {
-            for cell in kind.piece_covered_cells(*pos.reborrow(), spin) {
-                grid.spawn_cell(&mut commands, &cell, kind);
-            }
-
-            commands.entity(entity).despawn_recursive();
-            break;
-        }
+    for _ in 0..fall.down_timer.times_finished_this_tick() {
+        grid.try_move([0, -1], kind, pos.reborrow(), spin);
     }
 }
 

@@ -114,9 +114,10 @@ pub struct FilledCell {
     pub color_from_kind: PieceKind,
 }
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Clone)]
 pub struct Fall {
-    pub next_trigger: Timer,
+    pub down_timer: Timer,
+    pub lock_timer: Timer,
 }
 
 #[derive(Bundle, Clone)]

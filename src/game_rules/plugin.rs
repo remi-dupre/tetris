@@ -26,6 +26,7 @@ impl Plugin for GameRulesPlugin {
                         consume_queued_lines,
                         piece_spawn,
                         piece_move.after(keyboard_input_system),
+                        piece_lock,
                         piece_fall,
                         register_completed_lines,
                         update_score,

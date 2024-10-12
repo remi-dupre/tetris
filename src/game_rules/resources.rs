@@ -14,6 +14,10 @@ pub(crate) const SOFT_DROP_SPEEDUP: u32 = 3;
 /// Minimum time per tile when using soft drop
 pub(crate) const SOFT_DROP_MAX_DELAY: Duration = Duration::from_millis(50);
 
+/// Maximum time lying on the ground before locking.
+/// See https://tetris.fandom.com/wiki/Lock_delay
+pub(crate) const LOCK_DELAY: Duration = Duration::from_millis(500);
+
 // -- PausedForRows
 
 /// Allows to pause the game progress for a while, this must be removed from
