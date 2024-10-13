@@ -3,6 +3,11 @@ name = "tetris"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["desktop", "web"]
+desktop = ["bevy/wayland", "bevy/x11"]
+web = ["bevy/webgl2", "bevy/bevy_winit"]
+
 [dependencies]
 enum-map = "2.7"
 log = { version = "0.4", features = ["release_max_level_warn"] }
@@ -18,12 +23,9 @@ features = [
     "bevy_sprite",
     "bevy_text",
     "bevy_ui",
-    "wayland",
-    "webgl2",
-    "x11",
 ]
 
 [profile.release]
 codegen-units = 1
 lto = true
-opt-level = 's'
+opt-level = 'z'

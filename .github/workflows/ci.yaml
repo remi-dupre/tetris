@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update --no-self-update stable
+          rustup component add rustfmt
+          rustup target add wasm32-unknown-unknown
+
+      - name: Lint
+        run: cargo clippy --no-default-features -- --deny clippy::all
+
+      - name: Format
+        run: cargo fmt -- --check
+
+      - name: Test
+        run: cargo test --no-default-features
+
+      - name: Build Wasm
+        run: cargo build --no-default-features -F web --release --target wasm32-unknown-unknown
+
+      - name: Install Wasm Bindgen
+        run: cargo install wasm-bindgen-cli
+
+      - name: Bundle Web App
+        run: |
+          ~/.cargo/bin/wasm-bindgen --target web --out-dir ./web/ --out-name "tetris" ./target/wasm32-unknown-unknown/release/tetris.wasm
+          cp -r ./assets ./web/
+
+      - name: Deploy to Github Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: web

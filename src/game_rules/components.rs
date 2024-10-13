@@ -89,7 +89,11 @@ impl PieceKind {
         }
     }
 
-    pub(crate) fn piece_covered_cells(self, pos: GridPos, spin: Spin) -> impl Iterator<Item = GridPos> {
+    pub(crate) fn piece_covered_cells(
+        self,
+        pos: GridPos,
+        spin: Spin,
+    ) -> impl Iterator<Item = GridPos> {
         self.rotation(spin).into_iter().map(move |[x, y]| GridPos {
             x: pos.x.wrapping_add_signed(x),
             y: pos.y.wrapping_add_signed(y),

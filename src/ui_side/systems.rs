@@ -202,7 +202,10 @@ pub(crate) fn setup_score_pannel(
         .set_parent(**root);
 }
 
-pub(crate) fn udpate_score_display(mut text: Query<Mut<Text>, With<ScoreDisplay>>, score: Res<Score>) {
+pub(crate) fn udpate_score_display(
+    mut text: Query<Mut<Text>, With<ScoreDisplay>>,
+    score: Res<Score>,
+) {
     if !score.is_changed() {
         return;
     }
