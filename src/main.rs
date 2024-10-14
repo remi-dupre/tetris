@@ -36,6 +36,7 @@ fn main() {
                 name: Some(WINDOW_CLASS.to_string()),
                 resolution: WindowResolution::new(WINDOW_SIZE[0], WINDOW_SIZE[1]),
                 fit_canvas_to_parent: true,
+                canvas: Some("#game-view".to_string()),
                 ..Default::default()
             }),
             ..Default::default()
