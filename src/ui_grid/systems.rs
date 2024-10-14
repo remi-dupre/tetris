@@ -1,11 +1,13 @@
 use bevy::animation::AnimationTarget;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
+use bevy::render::camera::ScalingMode;
 use bevy::sprite::MaterialMesh2dBundle;
 
 use crate::common::resources::ColorPalette;
 use crate::game_rules::components::{Fall, FilledCell, GridPos, PieceKind, Spin};
 use crate::game_rules::resources::{GridState, PausedForClear};
+use crate::WINDOW_SIZE;
 
 use super::components::*;
 use super::resources::*;
@@ -14,16 +16,15 @@ use super::tile_translation;
 // -- Camera
 
 pub(crate) fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
-    commands.spawn((
-        Name::new("Main Camera"),
-        Camera2dBundle {
-            camera: Camera {
-                clear_color: ClearColorConfig::Custom(palette.background_1.color),
-                ..Camera::default()
-            },
-            ..Camera2dBundle::default()
-        },
-    ));
+    let mut camera = Camera2dBundle::default();
+    camera.camera.clear_color = ClearColorConfig::Custom(palette.background_1.color);
+
+    camera.projection.scaling_mode = ScalingMode::AutoMin {
+        min_width: WINDOW_SIZE[0],
+        min_height: WINDOW_SIZE[1],
+    };
+
+    commands.spawn((Name::new("Main Camera"), camera));
 }
 
 // -- Static decoration

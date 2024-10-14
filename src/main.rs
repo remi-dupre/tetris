@@ -34,8 +34,8 @@ fn main() {
             primary_window: Some(Window {
                 title: WINDOW_TITLE.to_string(),
                 name: Some(WINDOW_CLASS.to_string()),
-                resizable: false,
                 resolution: WindowResolution::new(WINDOW_SIZE[0], WINDOW_SIZE[1]),
+                fit_canvas_to_parent: true,
                 ..Default::default()
             }),
             ..Default::default()
