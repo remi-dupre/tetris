@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::ops::DerefMut;
 use std::time::Duration;
 
@@ -29,6 +30,27 @@ pub(crate) const CLEAR_DELAY: Duration = Duration::from_millis(400);
 pub(crate) struct PausedForClear {
     pub(crate) timer: Timer,
     pub(crate) rows_to_delete: Vec<u8>,
+}
+
+// -- Stopwatch
+
+#[derive(Resource, Default)]
+pub(crate) struct Stopwatch {
+    pub(crate) since_begining: Duration,
+}
+
+impl Display for Stopwatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hours = self.since_begining.as_secs() / 3600;
+        let minutes = (self.since_begining.as_secs() % 3600) / 60;
+        let seconds = self.since_begining.as_secs() % 60;
+
+        if hours > 0 {
+            write!(f, "{hours:02}")?;
+        }
+
+        write!(f, "{minutes:02}:{seconds:02}")
+    }
 }
 
 // -- GridState
@@ -201,11 +223,17 @@ impl XP {
     }
 }
 
+impl Display for XP {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.level())
+    }
+}
+
 // -- Score
 #[derive(Resource, Default)]
 pub(crate) struct Score(pub(crate) u64);
 
-impl std::fmt::Display for Score {
+impl Display for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let log_1000 = self.0.checked_ilog10().unwrap_or(0) / 3;
         write!(f, "{}", self.0 / 1000u64.pow(log_1000))?;

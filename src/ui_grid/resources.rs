@@ -4,7 +4,6 @@ use bevy::animation::AnimationTargetId;
 use bevy::prelude::*;
 use enum_map::EnumMap;
 
-use crate::common::resources::ColorPalette;
 use crate::game_rules::components::PieceKind;
 use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
@@ -71,6 +70,7 @@ pub(crate) struct MeshCollection {
     pub(crate) square: Handle<Mesh>,
     pub(crate) frame: Handle<Mesh>,
     pub(crate) grid: Handle<Mesh>,
+    pub(crate) grid_background: Handle<Mesh>,
     pub(crate) pieces_small_blocks: EnumMap<PieceKind, Handle<Mesh>>,
 }
 
@@ -126,6 +126,11 @@ impl FromWorld for MeshCollection {
                 })
         }
 
+        let grid_background = world.add_asset(Rectangle::new(
+            UI_GRID_VIRTUAL_WIDTH,
+            UI_GRID_VIRTUAL_HEIGHT,
+        ));
+
         let grid = world.add_asset(
             mesh_piece(
                 (0..GRID_WIDTH)
@@ -152,39 +157,9 @@ impl FromWorld for MeshCollection {
             square: world.add_asset(Rectangle::from_length(CELL_SIZE * BLOCK_SQUARE_RATIO)),
             frame,
             grid,
+            grid_background,
             pieces_small_blocks,
         }
-    }
-}
-
-// MaterialCollection
-
-#[derive(Resource)]
-pub(crate) struct MaterialCollection {
-    pub(crate) pieces: EnumMap<PieceKind, Handle<ColorMaterial>>,
-    pub(crate) ghosts: EnumMap<PieceKind, Handle<ColorMaterial>>,
-}
-
-impl FromWorld for MaterialCollection {
-    fn from_world(world: &mut World) -> Self {
-        let palette: ColorPalette = world.resource::<ColorPalette>().clone();
-
-        let base_color = |kind| match kind {
-            PieceKind::I => Color::srgb(0.0, 1.0, 1.0), // cyan
-            PieceKind::O => Color::srgb(1.0, 1.0, 0.0), // yellow
-            PieceKind::T => Color::srgb(0.5, 0.0, 0.5), // purple
-            PieceKind::S => Color::srgb(0.0, 1.0, 0.0), // green
-            PieceKind::Z => Color::srgb(1.0, 0.0, 0.0), // red
-            PieceKind::J => Color::srgb(0.0, 0.0, 1.0), // blue
-            PieceKind::L => Color::srgb(1.0, 0.5, 0.0), // orange
-        };
-
-        let ghosts = EnumMap::from_fn(|kind| {
-            world.add_asset(base_color(kind).mix(&palette.background_2.color, 0.9))
-        });
-
-        let pieces = EnumMap::from_fn(|kind| world.add_asset(base_color(kind)));
-        Self { pieces, ghosts }
     }
 }
 

@@ -12,7 +12,8 @@ pub(crate) struct GameRulesPlugin;
 
 impl Plugin for GameRulesPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PieceGenerator>()
+        app.init_resource::<Stopwatch>()
+            .init_resource::<PieceGenerator>()
             .init_resource::<Score>()
             .init_resource::<GridState>()
             .init_resource::<XP>()
@@ -32,6 +33,7 @@ impl Plugin for GameRulesPlugin {
                         register_completed_lines,
                         update_score,
                         update_xp,
+                        update_stopwatch,
                     )
                         .chain()
                         .run_if(not(resource_exists::<PausedForClear>))

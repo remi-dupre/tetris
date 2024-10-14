@@ -8,6 +8,14 @@ use super::components::*;
 use super::events::*;
 use super::resources::*;
 
+// -- Stopwatch
+
+pub(crate) fn update_stopwatch(mut stopwatch: ResMut<Stopwatch>, time: Res<Time>) {
+    stopwatch.since_begining += time.delta();
+}
+
+// -- Piece movement
+
 pub(crate) fn piece_spawn(
     mut commands: Commands,
     mut piece_generator: ResMut<PieceGenerator>,

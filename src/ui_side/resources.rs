@@ -2,7 +2,9 @@ use std::ops::Deref;
 
 use bevy::prelude::*;
 
-use super::{UI_SIDE_VIRTUAL_HEIGHT, UI_SIDE_VIRTUAL_WIDTH};
+pub(crate) const UI_SIDE_VIRTUAL_WIDTH: f32 = 200.0;
+pub(crate) const UI_SIDE_VIRTUAL_HEIGHT: f32 = 800.0;
+pub(crate) const UI_SIDE_BORDER: f32 = 20.0;
 
 // -- Config
 

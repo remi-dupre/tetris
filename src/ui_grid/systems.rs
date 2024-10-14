@@ -17,7 +17,7 @@ use super::tile_translation;
 
 pub(crate) fn setup_camera(mut commands: Commands, palette: Res<ColorPalette>) {
     let mut camera = Camera2dBundle::default();
-    camera.camera.clear_color = ClearColorConfig::Custom(palette.background_1.color);
+    camera.camera.clear_color = ClearColorConfig::Custom(palette.background_2.color);
 
     camera.projection.scaling_mode = ScalingMode::AutoMin {
         min_width: WINDOW_SIZE[0],
@@ -47,12 +47,23 @@ pub(crate) fn draw_frame(
         .set_parent(**root);
 }
 
-pub(crate) fn draw_background(
+pub(crate) fn draw_background_grid(
     mut commands: Commands,
     meshes: Res<MeshCollection>,
     palette: Res<ColorPalette>,
     root: Res<UiGridRoot>,
 ) {
+    commands
+        .spawn((
+            Name::new("Background Color"),
+            MaterialMesh2dBundle {
+                mesh: meshes.grid_background.clone().into(),
+                material: palette.background_1.material.clone(),
+                ..Default::default()
+            },
+        ))
+        .set_parent(**root);
+
     commands
         .spawn((
             Name::new("Background Grid"),
@@ -70,7 +81,7 @@ pub(crate) fn draw_background(
 pub(crate) fn attach_filled_cell_sprite(
     mut commands: Commands,
     root: Res<UiGridRoot>,
-    materials: Res<MaterialCollection>,
+    palette: Res<ColorPalette>,
     meshes: Res<MeshCollection>,
     newly_filled_cells: Query<(Entity, &GridPos, &FilledCell), Added<FilledCell>>,
     animations: Res<AnimationCollection>,
@@ -99,7 +110,7 @@ pub(crate) fn attach_filled_cell_sprite(
                     mesh: meshes.square.clone().into(),
                     transform: Transform::default()
                         .with_translation(tile_translation(pos.x, pos.y, 0.0)),
-                    material: materials.pieces[filled.color_from_kind].clone(),
+                    material: palette.pieces[filled.color_from_kind].material.clone(),
                     ..Default::default()
                 },
                 AnimationTarget {
@@ -161,7 +172,7 @@ pub(crate) fn cleanup_finished_oneshot_players(
 pub(crate) fn attach_piece_sprite(
     mut commands: Commands,
     root: Res<UiGridRoot>,
-    materials: Res<MaterialCollection>,
+    palette: Res<ColorPalette>,
     meshes: Res<MeshCollection>,
     pieces: Query<(Entity, &PieceKind), Added<Fall>>,
 ) {
@@ -172,7 +183,7 @@ pub(crate) fn attach_piece_sprite(
             PieceTile,
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
-                material: materials.pieces[kind].clone(),
+                material: palette.pieces[kind].material.clone(),
                 transform: Transform::from_translation([0.0, 0.0, 100.0].into()),
                 ..Default::default()
             },
@@ -190,7 +201,7 @@ pub(crate) fn attach_piece_sprite(
 pub(crate) fn attach_piece_ghost(
     mut commands: Commands,
     root: Res<UiGridRoot>,
-    materials: Res<MaterialCollection>,
+    palette: Res<ColorPalette>,
     meshes: Res<MeshCollection>,
     pieces: Query<(Entity, &PieceKind, &GridPos, &Spin), Added<Fall>>,
 ) {
@@ -199,7 +210,7 @@ pub(crate) fn attach_piece_ghost(
             Name::new("Ghost Piece"),
             MaterialMesh2dBundle {
                 mesh: meshes.pieces_small_blocks[kind].clone().into(),
-                material: materials.ghosts[kind].clone(),
+                material: palette.ghosts[kind].material.clone(),
                 ..Default::default()
             },
             kind,

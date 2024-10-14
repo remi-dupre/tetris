@@ -5,13 +5,12 @@ use bevy::sprite::Mesh2dHandle;
 use crate::common::resources::ColorPalette;
 use crate::game_rules::resources::PieceGenerator;
 use crate::game_rules::resources::Score;
+use crate::game_rules::resources::Stopwatch;
 use crate::game_rules::resources::XP;
-use crate::ui_grid::resources::MaterialCollection as GridMaterialCollection;
 use crate::ui_grid::resources::MeshCollection as GridMeshCollection;
 
 use super::components::*;
 use super::resources::*;
-use super::UI_SIDE_VIRTUAL_WIDTH;
 
 pub(crate) fn setup_background(
     mut commands: Commands,
@@ -84,7 +83,7 @@ pub(crate) fn setup_score_pannel(
                 )
                 .with_no_wrap(),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -320.0, 0.0].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -320.0, 0.0].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -95,7 +94,7 @@ pub(crate) fn setup_score_pannel(
     commands
         .spawn((
             Name::new("Score Display"),
-            ScoreDisplay,
+            ResourceDisplay::<Score>::default(),
             Text2dBundle {
                 text: Text::from_section(
                     "0",
@@ -106,7 +105,7 @@ pub(crate) fn setup_score_pannel(
                     },
                 ),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -350.0, 0.].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -350.0, 0.].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -128,7 +127,7 @@ pub(crate) fn setup_score_pannel(
                 )
                 .with_no_wrap(),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -240.0, 0.0].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -240.0, 0.0].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -139,7 +138,7 @@ pub(crate) fn setup_score_pannel(
     commands
         .spawn((
             Name::new("Level Display"),
-            LevelDisplay,
+            ResourceDisplay::<XP>::default(),
             Text2dBundle {
                 text: Text::from_section(
                     "1",
@@ -150,7 +149,7 @@ pub(crate) fn setup_score_pannel(
                     },
                 ),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -270.0, 0.].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -270.0, 0.].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -172,7 +171,7 @@ pub(crate) fn setup_score_pannel(
                 )
                 .with_no_wrap(),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -160.0, 0.0].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -160.0, 0.0].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -183,6 +182,7 @@ pub(crate) fn setup_score_pannel(
     commands
         .spawn((
             Name::new("Time Display"),
+            ResourceDisplay::<Stopwatch>::default(),
             Text2dBundle {
                 text: Text::from_section(
                     "00:00:00",
@@ -193,7 +193,7 @@ pub(crate) fn setup_score_pannel(
                     },
                 ),
                 transform: Transform::from_translation(
-                    [10.0 - UI_SIDE_VIRTUAL_WIDTH / 2.0, -190.0, 0.].into(),
+                    [UI_SIDE_BORDER - UI_SIDE_VIRTUAL_WIDTH / 2.0, -190.0, 0.].into(),
                 ),
                 text_anchor: Anchor::TopLeft,
                 ..Default::default()
@@ -202,26 +202,16 @@ pub(crate) fn setup_score_pannel(
         .set_parent(**root);
 }
 
-pub(crate) fn udpate_score_display(
-    mut text: Query<Mut<Text>, With<ScoreDisplay>>,
-    score: Res<Score>,
+pub(crate) fn update_resource_display<R: Resource + std::fmt::Display>(
+    mut texts: Query<Mut<Text>, With<ResourceDisplay<R>>>,
+    res: Res<R>,
 ) {
-    if !score.is_changed() {
+    if !res.is_changed() {
         return;
     }
 
-    for mut text in &mut text {
-        text.sections[0].value = score.to_string();
-    }
-}
-
-pub(crate) fn udpate_level_display(mut text: Query<Mut<Text>, With<LevelDisplay>>, xp: Res<XP>) {
-    if !xp.is_changed() {
-        return;
-    }
-
-    for mut text in &mut text {
-        text.sections[0].value = xp.level().to_string();
+    for mut text in &mut texts {
+        text.sections[0].value = res.to_string();
     }
 }
 
@@ -230,12 +220,12 @@ pub(crate) fn update_next_piece(
     mut rng: ResMut<PieceGenerator>,
     mut previews: Query<(Mut<Mesh2dHandle>, Mut<Handle<ColorMaterial>>), With<NextPiece>>,
     grid_meshes: Res<GridMeshCollection>,
-    grid_materials: Res<GridMaterialCollection>,
+    palette: Res<ColorPalette>,
 ) {
     let next_piece = rng.peek();
 
     for (mut mesh, mut material) in &mut previews {
         *mesh = grid_meshes.pieces_small_blocks[next_piece].clone().into();
-        *material = grid_materials.pieces[next_piece].clone();
+        *material = palette.pieces[next_piece].material.clone();
     }
 }

@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
 use crate::game_rules::plugin::GameUpdateSystems;
+use crate::game_rules::resources::Score;
+use crate::game_rules::resources::Stopwatch;
+use crate::game_rules::resources::XP;
 
 use super::resources::*;
 use super::systems::*;
@@ -27,8 +30,9 @@ impl Plugin for UiSidePlugin {
             .add_systems(
                 Update,
                 (
-                    udpate_score_display,
-                    udpate_level_display,
+                    update_resource_display::<Score>,
+                    update_resource_display::<XP>,
+                    update_resource_display::<Stopwatch>,
                     update_next_piece,
                 )
                     .chain()
