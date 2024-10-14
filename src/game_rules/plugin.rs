@@ -1,6 +1,8 @@
 use bevy::input::keyboard::keyboard_input_system;
 use bevy::prelude::*;
 
+use crate::ui_controls::plugin::UiControlsSystems;
+
 use super::events::*;
 use super::resources::*;
 use super::systems::*;
@@ -21,10 +23,7 @@ impl Plugin for GameRulesPlugin {
             .add_systems(
                 Update,
                 (
-                    (
-                        bevy::input::keyboard::keyboard_input_system,
-                        resume_after_clear.run_if(resource_exists::<PausedForClear>),
-                    ),
+                    resume_after_clear.run_if(resource_exists::<PausedForClear>),
                     (
                         piece_spawn,
                         piece_move.after(keyboard_input_system),
@@ -39,6 +38,7 @@ impl Plugin for GameRulesPlugin {
                         .run_if(not(resource_exists::<PausedForClear>))
                         .in_set(GameUpdateSystems),
                 )
+                    .after(UiControlsSystems)
                     .chain(),
             );
     }

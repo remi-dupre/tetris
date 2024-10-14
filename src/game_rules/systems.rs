@@ -1,7 +1,6 @@
-use bevy::input::keyboard::KeyboardInput;
-use bevy::input::ButtonState;
 use bevy::prelude::*;
 
+use crate::ui_controls::resources::{PlayerInput, PlayerInputQueue};
 use crate::{GRID_VISIBLE_HEIGHT, GRID_WIDTH};
 
 use super::components::*;
@@ -107,31 +106,21 @@ pub(crate) fn piece_fall(
 }
 
 pub(crate) fn piece_move(
-    mut keyboard_input_events: EventReader<KeyboardInput>,
     mut commands: Commands,
+    mut player_inputs: ResMut<PlayerInputQueue>,
     mut grid: ResMut<GridState>,
     mut pieces: Query<(Entity, &PieceKind, &mut GridPos, &mut Spin), With<Fall>>,
 ) {
     for (entity, &kind, mut pos, mut spin) in &mut pieces {
-        for event in keyboard_input_events.read() {
-            if event.state != ButtonState::Pressed {
-                continue;
-            }
-
-            match &event.key_code {
-                KeyCode::ArrowLeft => {
+        while let Some(input) = player_inputs.pop_front() {
+            match input {
+                PlayerInput::MoveLeft => {
                     grid.try_move([-1, 0], kind, pos.reborrow(), *spin.reborrow());
                 }
-                KeyCode::ArrowRight => {
+                PlayerInput::MoveRight => {
                     grid.try_move([1, 0], kind, pos.reborrow(), *spin.reborrow());
                 }
-                KeyCode::ArrowUp | KeyCode::KeyX => {
-                    grid.try_rotate_right(kind, pos.reborrow(), spin.reborrow());
-                }
-                KeyCode::ControlLeft | KeyCode::ControlRight | KeyCode::KeyZ => {
-                    grid.try_rotate_left(kind, pos.reborrow(), spin.reborrow());
-                }
-                KeyCode::Space => {
+                PlayerInput::HardDrop => {
                     while grid.try_move([0, -1], kind, pos.reborrow(), *spin) {}
 
                     for cell in kind.piece_covered_cells(*pos.reborrow(), *spin) {
@@ -141,7 +130,12 @@ pub(crate) fn piece_move(
                     commands.entity(entity).despawn_recursive();
                     break;
                 }
-                _ => {}
+                PlayerInput::RotateRight => {
+                    grid.try_rotate_right(kind, pos.reborrow(), spin.reborrow());
+                }
+                PlayerInput::RotateLeft => {
+                    grid.try_rotate_left(kind, pos.reborrow(), spin.reborrow());
+                }
             }
         }
     }

@@ -2,15 +2,13 @@
 
 pub(crate) mod common;
 pub(crate) mod game_rules;
+pub(crate) mod ui_controls;
 pub(crate) mod ui_grid;
 pub(crate) mod ui_side;
 
 #[cfg(test)]
 pub(crate) mod tests;
 
-use bevy::diagnostic::{
-    EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,
-};
 use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
@@ -24,19 +22,27 @@ const GRID_HEIGHT: u8 = 22;
 const GRID_VISIBLE_HEIGHT: u8 = 20;
 
 fn main() {
+    let canvas = {
+        if cfg!(debug_assertions) {
+            None
+        } else {
+            Some("#game-view".to_string())
+        }
+    };
+
     App::new()
-        .add_plugins((
-            EntityCountDiagnosticsPlugin,
-            FrameTimeDiagnosticsPlugin,
-            LogDiagnosticsPlugin::default(),
-        ))
+        // .add_plugins((
+        //     bevy::diagnostic::EntityCountDiagnosticsPlugin,
+        //     bevy::diagnostic::FrameTimeDiagnosticsPlugin,
+        //     bevy::diagnostic::LogDiagnosticsPlugin::default(),
+        // ))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: WINDOW_TITLE.to_string(),
                 name: Some(WINDOW_CLASS.to_string()),
                 resolution: WindowResolution::new(WINDOW_SIZE[0], WINDOW_SIZE[1]),
                 fit_canvas_to_parent: true,
-                canvas: Some("#game-view".to_string()),
+                canvas,
                 ..Default::default()
             }),
             ..Default::default()
@@ -44,6 +50,7 @@ fn main() {
         .add_plugins((
             common::plugin::CommonPlugin,
             game_rules::plugin::GameRulesPlugin,
+            ui_controls::plugin::UiControlsPlugin,
             ui_grid::plugin::UiGridPlugin {
                 pos: [-95.0, 0.0], // x: -290..110 ; y: -400..400
                 size: [400.0, 800.0],
